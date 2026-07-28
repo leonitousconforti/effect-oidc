@@ -81,6 +81,35 @@ it.live("rejects a General JWS exceeding maxSignatures", () =>
     })
 );
 
+it.live("signs critical extension headers and enforces them fail-closed on verify", () =>
+    Effect.gen(function* () {
+        const pair = yield* Effect.promise(() =>
+            crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"])
+        );
+
+        // Signing must populate `crit` with the declared critical header keys
+        // — callers cannot (ProtectedHeaderExtras excludes `crit`).
+        const flattened = yield* Jws.sign({
+            privateKeys: [{ algorithm: "ES256", key: pair.privateKey }],
+            criticalHeaders: { expiresAt: Schema.Number },
+        })("guarded", { expiresAt: 123 });
+        const jws = yield* Schema.decodeUnknownEffect(Jws.Flattened)(flattened);
+
+        // A verifier that declares the extension verifies and reads it back.
+        const verified = yield* Jws.verify({
+            publicKeys: [pair.publicKey],
+            criticalHeaders: { expiresAt: Schema.Number },
+        })(jws);
+        expect(verified.protected.crit).toStrictEqual(["expiresAt"]);
+        expect(verified.protected.expiresAt).toBe(123);
+        expect(verified.payload).toBe("guarded");
+
+        // One that does not declare it must reject the token.
+        const unaware = yield* Effect.flip(Jws.verify({ publicKeys: [pair.publicKey] })(jws));
+        expect(Schema.isSchemaError(unaware)).toBe(true);
+    })
+);
+
 it.live("preserves the CRT parameters of a full RSA private key", () =>
     Effect.gen(function* () {
         const full = { kty: "RSA", n: "nnn", e: "AQAB", d: "ddd", p: "ppp", q: "qqq", dp: "dpv", dq: "dqv", qi: "qiv" };
