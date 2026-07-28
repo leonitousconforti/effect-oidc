@@ -81,7 +81,7 @@ declare const JweAlgorithm: Schema.Literals<
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwa.ts#L109)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwa.ts#L109)
 
 Since v1.0.0
 
@@ -102,7 +102,7 @@ declare const JweEncryption: Schema.Literals<
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwa.ts#L151)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwa.ts#L151)
 
 Since v1.0.0
 
@@ -150,7 +150,7 @@ declare const encryptionParameters: (
     }
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwa.ts#L175)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwa.ts#L175)
 
 Since v1.0.0
 
@@ -174,7 +174,7 @@ declare const JwsAlgorithm: Schema.Literals<
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwa.ts#L32)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwa.ts#L32)
 
 Since v1.0.0
 
@@ -204,7 +204,7 @@ declare const importParameters: (
 ) => RsaHashedImportParams | EcKeyImportParams | HmacImportParams
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwa.ts#L64)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwa.ts#L64)
 
 Since v1.0.0
 
@@ -233,6 +233,6 @@ declare const signatureParameters: (
 ) => AlgorithmIdentifier | RsaPssParams | EcdsaParams
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwa.ts#L87)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwa.ts#L87)
 
 Since v1.0.0

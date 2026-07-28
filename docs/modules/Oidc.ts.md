@@ -66,7 +66,7 @@ declare const authorizationUrl: (options: {
 }) => string
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L278)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L278)
 
 Since v1.0.0
 
@@ -99,7 +99,7 @@ declare const exchangeAuthorizationCode: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L306)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L306)
 
 Since v1.0.0
 
@@ -131,7 +131,7 @@ declare const fetchDiscovery: (
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L234)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L234)
 
 Since v1.0.0
 
@@ -153,6 +153,37 @@ declare const fetchJwks: (
           readonly x: string
           readonly y: string
           readonly d: string
+          readonly use?: "sig" | "enc" | undefined
+          readonly key_ops?:
+            | ReadonlyArray<
+                "sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits"
+              >
+            | undefined
+          readonly alg?:
+            | "HS256"
+            | "HS384"
+            | "HS512"
+            | "RS256"
+            | "RS384"
+            | "RS512"
+            | "ES256"
+            | "ES384"
+            | "ES512"
+            | "PS256"
+            | "PS384"
+            | "PS512"
+            | undefined
+          readonly kid?: string | undefined
+          readonly x5u?: string | undefined
+          readonly x5c?: ReadonlyArray<string> | undefined
+          readonly x5t?: string | undefined
+          readonly "x5t#S256"?: string | undefined
+        }
+      | {
+          readonly kty: "EC"
+          readonly crv: "P-256" | "P-384" | "P-521"
+          readonly x: string
+          readonly y: string
           readonly use?: "sig" | "enc" | undefined
           readonly key_ops?:
             | ReadonlyArray<
@@ -249,37 +280,6 @@ declare const fetchJwks: (
           readonly oth?: ReadonlyArray<{ readonly r: string; readonly d: string; readonly t: string }> | undefined
         }
       | {
-          readonly kty: "EC"
-          readonly crv: "P-256" | "P-384" | "P-521"
-          readonly x: string
-          readonly y: string
-          readonly use?: "sig" | "enc" | undefined
-          readonly key_ops?:
-            | ReadonlyArray<
-                "sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits"
-              >
-            | undefined
-          readonly alg?:
-            | "HS256"
-            | "HS384"
-            | "HS512"
-            | "RS256"
-            | "RS384"
-            | "RS512"
-            | "ES256"
-            | "ES384"
-            | "ES512"
-            | "PS256"
-            | "PS384"
-            | "PS512"
-            | undefined
-          readonly kid?: string | undefined
-          readonly x5u?: string | undefined
-          readonly x5c?: ReadonlyArray<string> | undefined
-          readonly x5t?: string | undefined
-          readonly "x5t#S256"?: string | undefined
-        }
-      | {
           readonly kty: "RSA"
           readonly n: string
           readonly e: string
@@ -345,7 +345,7 @@ declare const fetchJwks: (
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L266)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L266)
 
 Since v1.0.0
 
@@ -359,7 +359,7 @@ Generates a PKCE verifier and its S256 challenge.
 declare const generatePkce: () => Effect.Effect<{ verifier: string; challenge: string; method: "S256" }, never, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L218)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L218)
 
 Since v1.0.0
 
@@ -398,7 +398,7 @@ declare const verifyIdToken: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L338)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L338)
 
 Since v1.0.0
 
@@ -414,7 +414,7 @@ Raised when a fetched discovery document fails validation.
 declare class DiscoveryError
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L123)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L123)
 
 Since v1.0.0
 
@@ -438,7 +438,7 @@ declare const issueAccessToken: (options: {
 }) => Effect.Effect<string, Schema.SchemaError, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L155)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L155)
 
 Since v1.0.0
 
@@ -461,7 +461,7 @@ declare const issueIdToken: (options: {
 }) => Effect.Effect<string, Schema.SchemaError, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L187)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L187)
 
 Since v1.0.0
 
@@ -476,7 +476,7 @@ endpoint paths.
 declare const makeDiscoveryDocument: (issuer: string) => Schema.Schema.Type<typeof DiscoveryDocumentSchema>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L135)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L135)
 
 Since v1.0.0
 
@@ -502,7 +502,7 @@ declare const AccessTokenClaimsSchema: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L98)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L98)
 
 Since v1.0.0
 
@@ -526,7 +526,7 @@ declare const AuthorizationRequestSchema: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L47)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L47)
 
 Since v1.0.0
 
@@ -550,7 +550,7 @@ declare const DiscoveryDocumentSchema: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L26)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L26)
 
 Since v1.0.0
 
@@ -574,7 +574,7 @@ declare const IdTokenClaimsSchema: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L108)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L108)
 
 Since v1.0.0
 
@@ -603,7 +603,7 @@ declare const TokenRequestSchema: Schema.Union<
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L62)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L62)
 
 Since v1.0.0
 
@@ -622,6 +622,6 @@ declare const TokenResponseSchema: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Oidc.ts#L83)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L83)
 
 Since v1.0.0

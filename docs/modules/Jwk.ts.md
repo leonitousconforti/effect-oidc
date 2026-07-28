@@ -70,7 +70,7 @@ algorithm (the classic asymmetric/symmetric confusion).
 declare const isCompatibleWith: (alg: (typeof JwsAlgorithm)["Type"], jwk: (typeof Jwk)["Type"]) => boolean
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L367)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L367)
 
 Since v1.0.0
 
@@ -84,7 +84,7 @@ Returns whether a JWK carries private key material (`d` for EC/RSA).
 declare const isPrivate: (jwk: (typeof Jwk)["Type"]) => boolean
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L406)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L406)
 
 Since v1.0.0
 
@@ -100,7 +100,7 @@ verification - that enables forgery.
 declare const isSymmetric: (jwk: (typeof Jwk)["Type"]) => boolean
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L398)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L398)
 
 Since v1.0.0
 
@@ -158,7 +158,7 @@ declare const EcPrivateKey: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L173)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L173)
 
 Since v1.0.0
 
@@ -214,7 +214,7 @@ declare const EcPublicKey: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L137)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L137)
 
 Since v1.0.0
 
@@ -233,7 +233,7 @@ Section 6.2.1.1.
 declare const EllipticCurve: Schema.Literals<readonly ["P-256", "P-384", "P-521"]>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L86)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L86)
 
 Since v1.0.0
 
@@ -501,7 +501,7 @@ declare const Jwk: Schema.Union<
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L334)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L334)
 
 Since v1.0.0
 
@@ -768,7 +768,7 @@ declare const JwkSet: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L348)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L348)
 
 Since v1.0.0
 
@@ -791,7 +791,7 @@ declare const KeyOperation: Schema.Literals<
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L63)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L63)
 
 Since v1.0.0
 
@@ -811,7 +811,7 @@ JWK "kty" (Key Type) parameter values as defined in RFC 7518 Section 6.1.
 declare const KeyType: Schema.Literals<readonly ["EC", "RSA", "oct"]>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L29)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L29)
 
 Since v1.0.0
 
@@ -831,7 +831,7 @@ JWK Public Key Use parameter values as defined in RFC 7517 Section 4.2.
 declare const KeyUse: Schema.Literals<readonly ["sig", "enc"]>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L46)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L46)
 
 Since v1.0.0
 
@@ -946,7 +946,7 @@ declare const RsaPrivateKey: Schema.Union<
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L250)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L250)
 
 Since v1.0.0
 
@@ -1001,7 +1001,7 @@ declare const RsaPublicKey: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L215)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L215)
 
 Since v1.0.0
 
@@ -1057,6 +1057,6 @@ declare const OctKey: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L303)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L303)
 
 Since v1.0.0

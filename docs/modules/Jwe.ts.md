@@ -130,6 +130,37 @@ declare const decrypt: (options: {
             readonly "x5t#S256"?: string | undefined
           }
         | {
+            readonly kty: "EC"
+            readonly crv: "P-256" | "P-384" | "P-521"
+            readonly x: string
+            readonly y: string
+            readonly use?: "sig" | "enc" | undefined
+            readonly key_ops?:
+              | ReadonlyArray<
+                  "sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits"
+                >
+              | undefined
+            readonly alg?:
+              | "HS256"
+              | "HS384"
+              | "HS512"
+              | "RS256"
+              | "RS384"
+              | "RS512"
+              | "ES256"
+              | "ES384"
+              | "ES512"
+              | "PS256"
+              | "PS384"
+              | "PS512"
+              | undefined
+            readonly kid?: string | undefined
+            readonly x5u?: string | undefined
+            readonly x5c?: ReadonlyArray<string> | undefined
+            readonly x5t?: string | undefined
+            readonly "x5t#S256"?: string | undefined
+          }
+        | {
             readonly kty: "RSA"
             readonly d: string
             readonly n: string
@@ -197,37 +228,6 @@ declare const decrypt: (options: {
             readonly x5t?: string | undefined
             readonly "x5t#S256"?: string | undefined
             readonly oth?: ReadonlyArray<{ readonly r: string; readonly d: string; readonly t: string }> | undefined
-          }
-        | {
-            readonly kty: "EC"
-            readonly crv: "P-256" | "P-384" | "P-521"
-            readonly x: string
-            readonly y: string
-            readonly use?: "sig" | "enc" | undefined
-            readonly key_ops?:
-              | ReadonlyArray<
-                  "sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits"
-                >
-              | undefined
-            readonly alg?:
-              | "HS256"
-              | "HS384"
-              | "HS512"
-              | "RS256"
-              | "RS384"
-              | "RS512"
-              | "ES256"
-              | "ES384"
-              | "ES512"
-              | "PS256"
-              | "PS384"
-              | "PS512"
-              | undefined
-            readonly kid?: string | undefined
-            readonly x5u?: string | undefined
-            readonly x5c?: ReadonlyArray<string> | undefined
-            readonly x5t?: string | undefined
-            readonly "x5t#S256"?: string | undefined
           }
         | {
             readonly kty: "RSA"
@@ -303,7 +303,7 @@ declare const decrypt: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwe.ts#L734)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L734)
 
 Since v1.0.0
 
@@ -337,7 +337,7 @@ declare const encrypt: (options: {
 }) => Effect.Effect<string, JweError, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwe.ts#L682)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L682)
 
 Since v1.0.0
 
@@ -351,7 +351,7 @@ Since v1.0.0
 declare class JweError
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwe.ts#L190)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L190)
 
 Since v1.0.0
 
@@ -365,7 +365,7 @@ The reasons a JWE operation can fail.
 type JweErrorReason = "Malformed" | "UnsupportedAlgorithm" | "KeyManagementFailed" | "DecryptionFailed"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwe.ts#L184)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L184)
 
 Since v1.0.0
 
@@ -411,7 +411,7 @@ declare const Compact: Schema.decodeTo<
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwe.ts#L133)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L133)
 
 Since v1.0.0
 
@@ -730,6 +730,6 @@ declare const ProtectedHeader: Schema.StructWithRest<
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwe.ts#L51)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L51)
 
 Since v1.0.0

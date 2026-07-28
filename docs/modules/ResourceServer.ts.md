@@ -66,7 +66,7 @@ declare const layer: (options: {
 }) => Layer.Layer<Authorization, never, HttpClient.HttpClient>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/ResourceServer.ts#L97)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L97)
 
 Since v1.0.0
 
@@ -80,7 +80,7 @@ Since v1.0.0
 declare class Authorization
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/ResourceServer.ts#L64)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L64)
 
 Since v1.0.0
 
@@ -106,7 +106,7 @@ declare const requireScopes: (
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/ResourceServer.ts#L83)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L83)
 
 Since v1.0.0
 
@@ -123,6 +123,6 @@ scopes, and the OAuth client acting on the account's behalf.
 declare class CurrentUser
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/ResourceServer.ts#L50)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L50)
 
 Since v1.0.0

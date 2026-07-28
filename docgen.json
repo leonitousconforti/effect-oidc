@@ -1,8 +1,9 @@
 {
     "$schema": "./node_modules/@effect/docgen/schema.json",
-    "srcLink": "https://github.com/leonitousconforti/effect-oidc/tree/main/src/",
+    "srcLink": "https://github.com/leonitousconforti/effect-oidc/blob/main/src/",
     "exclude": ["src/internal/**/*.ts"],
     "runExamples": true,
+    "projectHomepage": "https://github.com/leonitousconforti/effect-oidc/",
     "examplesCompilerOptions": {
         "noEmit": true,
         "strict": true,
@@ -14,8 +15,8 @@
         "allowImportingTsExtensions": true,
         "types": ["node"],
         "paths": {
-            "@leonitousconforti/effect-oidc": ["../../src/index.ts"],
-            "@leonitousconforti/effect-oidc/*": ["../../src/*.ts"]
+            "effect-oidc": ["../../src/index.ts"],
+            "effect-oidc/*": ["../../src/*.ts"]
         }
     }
 }

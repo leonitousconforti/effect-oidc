@@ -61,7 +61,7 @@ Re-exports all named exports from the "./Jwt.ts" module as `Jwt`.
 export * as Jwt from "./Jwt.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L105)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L105)
 
 Since v1.0.0
 
@@ -77,7 +77,7 @@ Re-exports all named exports from the "./Oidc.ts" module as `Oidc`.
 export * as Oidc from "./Oidc.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L122)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L122)
 
 Since v1.0.0
 
@@ -93,7 +93,7 @@ Re-exports all named exports from the "./ResourceServer.ts" module as `ResourceS
 export * as ResourceServer from "./ResourceServer.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L155)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L155)
 
 Since v1.0.0
 
@@ -113,7 +113,7 @@ Re-exports all named exports from the "./Jwa.ts" module as `Jwa`.
 export * as Jwa from "./Jwa.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L24)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L24)
 
 Since v1.0.0
 
@@ -132,7 +132,7 @@ Re-exports all named exports from the "./Jwe.ts" module as `Jwe`.
 export * as Jwe from "./Jwe.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L50)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L50)
 
 Since v1.0.0
 
@@ -151,7 +151,7 @@ Re-exports all named exports from the "./Jwk.ts" module as `Jwk`.
 export * as Jwk from "./Jwk.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L68)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L68)
 
 Since v1.0.0
 
@@ -170,6 +170,6 @@ Re-exports all named exports from the "./Jws.ts" module as `Jws`.
 export * as Jws from "./Jws.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L90)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L90)
 
 Since v1.0.0

@@ -68,7 +68,7 @@ Since v1.0.0
 declare class InvalidHeaders
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L466)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L466)
 
 Since v1.0.0
 
@@ -80,7 +80,7 @@ Since v1.0.0
 declare class InvalidJws
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L478)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L478)
 
 Since v1.0.0
 
@@ -92,7 +92,7 @@ Since v1.0.0
 declare class InvalidSignature
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L472)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L472)
 
 Since v1.0.0
 
@@ -408,7 +408,7 @@ declare const JoseHeader: VariantSchema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L57)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L57)
 
 Since v1.0.0
 
@@ -697,7 +697,7 @@ declare const JoseProtectedHeader: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L158)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L158)
 
 Since v1.0.0
 
@@ -987,7 +987,7 @@ declare const JoseUnprotectedHeader: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L167)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L167)
 
 Since v1.0.0
 
@@ -1003,7 +1003,7 @@ Additional protected header parameters that callers may set when signing
 type ProtectedHeaderExtras = Omit<(typeof JoseProtectedHeader)["Type"], "alg" | "crit">
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L177)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L177)
 
 Since v1.0.0
 
@@ -1023,7 +1023,7 @@ type ValidateCriticalHeaderKey<K> = K extends
   : {}
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L188)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L188)
 
 Since v1.0.0
 
@@ -1039,7 +1039,7 @@ type ValidateCriticalHeaderKeys<CriticalHeaders> = {
 }
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L200)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L200)
 
 Since v1.0.0
 
@@ -1055,7 +1055,7 @@ Any unverified JWS serialization.
 declare const Unsecured: Schema.Union<readonly [typeof General, typeof Flattened, typeof Compact]>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L460)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L460)
 
 Since v1.0.0
 
@@ -1096,7 +1096,7 @@ declare const sign: <
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L647)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L647)
 
 Since v1.0.0
 
@@ -9813,6 +9813,37 @@ declare const verify: <
                 readonly "x5t#S256"?: string | undefined
               }
             | {
+                readonly kty: "EC"
+                readonly crv: "P-256" | "P-384" | "P-521"
+                readonly x: string
+                readonly y: string
+                readonly use?: "sig" | "enc" | undefined
+                readonly key_ops?:
+                  | ReadonlyArray<
+                      "sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits"
+                    >
+                  | undefined
+                readonly alg?:
+                  | "HS256"
+                  | "HS384"
+                  | "HS512"
+                  | "RS256"
+                  | "RS384"
+                  | "RS512"
+                  | "ES256"
+                  | "ES384"
+                  | "ES512"
+                  | "PS256"
+                  | "PS384"
+                  | "PS512"
+                  | undefined
+                readonly kid?: string | undefined
+                readonly x5u?: string | undefined
+                readonly x5c?: ReadonlyArray<string> | undefined
+                readonly x5t?: string | undefined
+                readonly "x5t#S256"?: string | undefined
+              }
+            | {
                 readonly kty: "RSA"
                 readonly d: string
                 readonly n: string
@@ -9880,37 +9911,6 @@ declare const verify: <
                 readonly x5t?: string | undefined
                 readonly "x5t#S256"?: string | undefined
                 readonly oth?: ReadonlyArray<{ readonly r: string; readonly d: string; readonly t: string }> | undefined
-              }
-            | {
-                readonly kty: "EC"
-                readonly crv: "P-256" | "P-384" | "P-521"
-                readonly x: string
-                readonly y: string
-                readonly use?: "sig" | "enc" | undefined
-                readonly key_ops?:
-                  | ReadonlyArray<
-                      "sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits"
-                    >
-                  | undefined
-                readonly alg?:
-                  | "HS256"
-                  | "HS384"
-                  | "HS512"
-                  | "RS256"
-                  | "RS384"
-                  | "RS512"
-                  | "ES256"
-                  | "ES384"
-                  | "ES512"
-                  | "PS256"
-                  | "PS384"
-                  | "PS512"
-                  | undefined
-                readonly kid?: string | undefined
-                readonly x5u?: string | undefined
-                readonly x5c?: ReadonlyArray<string> | undefined
-                readonly x5t?: string | undefined
-                readonly "x5t#S256"?: string | undefined
               }
             | {
                 readonly kty: "RSA"
@@ -12854,7 +12854,7 @@ declare const verify: <
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L491)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L491)
 
 Since v1.0.0
 
@@ -12882,7 +12882,7 @@ provides no syntax to represent a JWS Unprotected Header value.
 declare class Compact
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L421)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L421)
 
 Since v1.0.0
 
@@ -12914,7 +12914,7 @@ members alongside "payload".
 declare class Flattened
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L387)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L387)
 
 Since v1.0.0
 
@@ -12943,7 +12943,7 @@ Supports multiple digital signatures and/or MACs for the same payload.
 declare class General
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L345)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L345)
 
 Since v1.0.0
 
@@ -12985,7 +12985,7 @@ declare const Signed: <
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L806)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L806)
 
 Since v1.0.0
 
@@ -16234,6 +16234,6 @@ declare const Verified: <
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L748)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L748)
 
 Since v1.0.0

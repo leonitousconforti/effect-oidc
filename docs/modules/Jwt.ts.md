@@ -51,7 +51,7 @@ Since v1.0.0
 declare class JwtError
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwt.ts#L78)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L78)
 
 Since v1.0.0
 
@@ -137,7 +137,7 @@ declare const generateSigningKey: () => Effect.Effect<
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwt.ts#L123)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L123)
 
 Since v1.0.0
 
@@ -399,7 +399,7 @@ declare const JwksSchema: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwt.ts#L44)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L44)
 
 Since v1.0.0
 
@@ -451,7 +451,7 @@ declare const PrivateJwkSchema: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwt.ts#L36)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L36)
 
 Since v1.0.0
 
@@ -501,7 +501,7 @@ declare const PublicJwkSchema: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwt.ts#L27)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L27)
 
 Since v1.0.0
 
@@ -523,7 +523,7 @@ declare const RegisteredClaimsSchema: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwt.ts#L52)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L52)
 
 Since v1.0.0
 
@@ -550,7 +550,7 @@ declare const StandardClaimsSchema: Schema.StructWithRest<
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwt.ts#L70)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L70)
 
 Since v1.0.0
 
@@ -571,7 +571,7 @@ declare const sign: (options: {
 }) => Effect.Effect<string, Schema.SchemaError, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwt.ts#L154)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L154)
 
 Since v1.0.0
 
@@ -613,6 +613,6 @@ declare const verify: (
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwt.ts#L193)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L193)
 
 Since v1.0.0
