@@ -10,7 +10,7 @@
  * {@link Signed}) that treat signing/verification as schema transformations.
  *
  * Keys embedded in the token itself (`jwk` and `jku` header parameters) are
- * IGNORED during verification unless explicitly opted into — an attacker can
+ * IGNORED during verification unless explicitly opted into - an attacker can
  * put any key they control in those headers, so trusting them by default
  * would make signature verification meaningless for authentication use.
  *
@@ -47,7 +47,7 @@ const joseVariantSchema = VariantSchema.make({
  * describes the cryptographic operations applied to the JWS Protected Header
  * and the JWS Payload.
  *
- * This schema is extensible — additional public and private header parameters
+ * This schema is extensible - additional public and private header parameters
  * are permitted per RFC 7515 Sections 4.2 and 4.3.
  *
  * @since 1.0.0
@@ -367,7 +367,7 @@ export class General extends Schema.Opaque<General, Brand.Brand<"General">>()(
 
 /**
  * Flattened JWS JSON Serialization as defined in RFC 7515 Section 7.2.2.
- * Optimized for the single digital signature or MAC case — the "signatures"
+ * Optimized for the single digital signature or MAC case - the "signatures"
  * member is flattened into top-level "protected", "header", and "signature"
  * members alongside "payload".
  *
@@ -481,7 +481,7 @@ export class InvalidJws extends Data.TaggedError("InvalidJws")<{ reason: Invalid
  * Builds a JWS verifier. Signatures are checked against the provided
  * `publicKeys`. Keys embedded in the token (`jwk` header) are only
  * considered when `trustEmbeddedJwk` is set, and `jku` URLs are only
- * followed when a `resolveJku` effect is supplied — both default to off
+ * followed when a `resolveJku` effect is supplied - both default to off
  * because tokens choose their own headers.
  *
  * @since 1.0.0
@@ -565,7 +565,7 @@ export function verify<
 
             // Keys pulled from the token itself (jku / embedded jwk) are used
             // only if they are asymmetric public keys compatible with the
-            // header algorithm — never symmetric or private keys.
+            // header algorithm - never symmetric or private keys.
             const trustable = (jwk: (typeof Jwk)["Type"]) =>
                 !isSymmetric(jwk) && !isPrivate(jwk) && isCompatibleWith(header.alg!, jwk);
 
@@ -680,7 +680,7 @@ export function sign<
 
     // The `crit` member must list every registered critical header key
     // (RFC 7515 Section 4.1.11) and the extended header schema requires
-    // exactly that, so it is populated here rather than by callers —
+    // exactly that, so it is populated here rather than by callers;
     // `ProtectedHeaderExtras` deliberately excludes `crit`.
     const criticalKeys = Object.keys(options.criticalHeaders ?? {});
 
@@ -740,7 +740,7 @@ export function sign<
 /**
  * Schema combinator that decodes an unverified JWS into its verified payload
  * and headers, failing decode when no signature verifies. Encoding is
- * forbidden — use {@link Signed} to produce a JWS.
+ * forbidden - use {@link Signed} to produce a JWS.
  *
  * @since 1.0.0
  * @category Schema Combinators

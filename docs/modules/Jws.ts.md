@@ -17,7 +17,7 @@ compile-time key validation, and schema combinators (`Verified`,
 `Signed`) that treat signing/verification as schema transformations.
 
 Keys embedded in the token itself (`jwk` and `jku` header parameters) are
-IGNORED during verification unless explicitly opted into — an attacker can
+IGNORED during verification unless explicitly opted into - an attacker can
 put any key they control in those headers, so trusting them by default
 would make signature verification meaningless for authentication use.
 
@@ -104,7 +104,7 @@ JOSE Header for JWS as defined in RFC 7515 Section 4. The JOSE Header
 describes the cryptographic operations applied to the JWS Protected Header
 and the JWS Payload.
 
-This schema is extensible — additional public and private header parameters
+This schema is extensible - additional public and private header parameters
 are permitted per RFC 7515 Sections 4.2 and 4.3.
 
 **See**
@@ -1105,7 +1105,7 @@ Since v1.0.0
 Builds a JWS verifier. Signatures are checked against the provided
 `publicKeys`. Keys embedded in the token (`jwk` header) are only
 considered when `trustEmbeddedJwk` is set, and `jku` URLs are only
-followed when a `resolveJku` effect is supplied — both default to off
+followed when a `resolveJku` effect is supplied - both default to off
 because tokens choose their own headers.
 
 **See**
@@ -12891,7 +12891,7 @@ Since v1.0.0
 ## Flattened (class)
 
 Flattened JWS JSON Serialization as defined in RFC 7515 Section 7.2.2.
-Optimized for the single digital signature or MAC case — the "signatures"
+Optimized for the single digital signature or MAC case - the "signatures"
 member is flattened into top-level "protected", "header", and "signature"
 members alongside "payload".
 
@@ -12993,7 +12993,7 @@ Since v1.0.0
 
 Schema combinator that decodes an unverified JWS into its verified payload
 and headers, failing decode when no signature verifies. Encoding is
-forbidden — use `Signed` to produce a JWS.
+forbidden - use `Signed` to produce a JWS.
 
 **Signature**
 

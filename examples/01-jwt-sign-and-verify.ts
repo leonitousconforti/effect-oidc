@@ -1,6 +1,6 @@
 /**
  * The core loop every other example builds on: provision a signing key,
- * publish the public half as a JWKS, sign a JWT, and verify it — including
+ * publish the public half as a JWKS, sign a JWT, and verify it - including
  * what verification failures look like.
  *
  * Run with:
@@ -41,7 +41,7 @@ const program = Effect.gen(function* () {
     yield* Console.log("token:", token);
 
     // 3. Verify against the JWKS: signature (selected by `kid`), `exp`/`nbf`
-    //    with 30s clock skew, and — because they are provided — `iss`, `aud`,
+    //    with 30s clock skew, and, because they are provided, `iss`, `aud`,
     //    the allowed algorithms, and the `typ` header.
     const claims = yield* Jwt.verify(token, {
         jwks,

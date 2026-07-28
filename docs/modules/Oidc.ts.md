@@ -12,10 +12,10 @@ for relying apps.
 
 The provider serves, by convention relative to the issuer:
 
-- `/.well-known/openid-configuration` — `DiscoveryDocumentSchema`
-- `/.well-known/jwks.json` — `Jwt.JwksSchema`
-- `/oauth/authorize` — browser page decoding `AuthorizationRequestSchema`
-- `/oauth/token` — decoding `TokenRequestSchema`, answering `TokenResponseSchema`
+- `/.well-known/openid-configuration` - `DiscoveryDocumentSchema`
+- `/.well-known/jwks.json` - `Jwt.JwksSchema`
+- `/oauth/authorize` - browser page decoding `AuthorizationRequestSchema`
+- `/oauth/token` - decoding `TokenRequestSchema`, answering `TokenResponseSchema`
 
 Since v1.0.0
 
@@ -367,7 +367,7 @@ Since v1.0.0
 
 Verifies an id token against the issuer's JWKS and decodes its claims,
 checking the audience (the client id) and, when provided, the nonce. This
-is the last step of the sign-in flow — the returned `sub` is the stable
+is the last step of the sign-in flow - the returned `sub` is the stable
 account id at the provider to key local users on.
 
 **Signature**

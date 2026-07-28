@@ -32,7 +32,7 @@ export * as Jwa from "./Jwa.ts"
  * AES key wrap, AES-GCM key wrap, ECDH-ES (direct and key-wrap), and PBES2
  * key management families.
  *
- * `RSA1_5` key management is intentionally unsupported — the Web Crypto API
+ * `RSA1_5` key management is intentionally unsupported - the Web Crypto API
  * does not implement RSAES-PKCS1-v1_5 encryption and RFC 8725 discourages it.
  *
  * Security note: AES-GCM (content encryption and `A*GCMKW` key wrapping) uses
@@ -79,7 +79,7 @@ export * as Jwk from "./Jwk.ts"
  * {@link Signed}) that treat signing/verification as schema transformations.
  *
  * Keys embedded in the token itself (`jwk` and `jku` header parameters) are
- * IGNORED during verification unless explicitly opted into — an attacker can
+ * IGNORED during verification unless explicitly opted into - an attacker can
  * put any key they control in those headers, so trusting them by default
  * would make signature verification meaningless for authentication use.
  *
@@ -111,10 +111,10 @@ export * as Jwt from "./Jwt.ts"
  *
  * The provider serves, by convention relative to the issuer:
  *
- * - `/.well-known/openid-configuration` — {@link DiscoveryDocumentSchema}
- * - `/.well-known/jwks.json` — `Jwt.JwksSchema`
- * - `/oauth/authorize` — browser page decoding {@link AuthorizationRequestSchema}
- * - `/oauth/token` — decoding {@link TokenRequestSchema}, answering {@link TokenResponseSchema}
+ * - `/.well-known/openid-configuration` - {@link DiscoveryDocumentSchema}
+ * - `/.well-known/jwks.json` - `Jwt.JwksSchema`
+ * - `/oauth/authorize` - browser page decoding {@link AuthorizationRequestSchema}
+ * - `/oauth/token` - decoding {@link TokenRequestSchema}, answering {@link TokenResponseSchema}
  *
  * @since 1.0.0
  * @category Oidc

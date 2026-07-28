@@ -5,10 +5,10 @@
  *
  * The provider serves, by convention relative to the issuer:
  *
- * - `/.well-known/openid-configuration` — {@link DiscoveryDocumentSchema}
- * - `/.well-known/jwks.json` — `Jwt.JwksSchema`
- * - `/oauth/authorize` — browser page decoding {@link AuthorizationRequestSchema}
- * - `/oauth/token` — decoding {@link TokenRequestSchema}, answering {@link TokenResponseSchema}
+ * - `/.well-known/openid-configuration` - {@link DiscoveryDocumentSchema}
+ * - `/.well-known/jwks.json` - `Jwt.JwksSchema`
+ * - `/oauth/authorize` - browser page decoding {@link AuthorizationRequestSchema}
+ * - `/oauth/token` - decoding {@link TokenRequestSchema}, answering {@link TokenResponseSchema}
  *
  * @since 1.0.0
  * @category Oidc
@@ -107,7 +107,7 @@ export const AccessTokenClaimsSchema = Schema.Struct({
  */
 export const IdTokenClaimsSchema = Schema.Struct({
     ...Jwt.RegisteredClaimsSchema.fields,
-    /** Authorized party — the client the id token was issued to. */
+    /** Authorized party - the client the id token was issued to. */
     azp: Schema.String.pipe(Schema.optional),
     nonce: Schema.String.pipe(Schema.optional),
     name: Schema.String.pipe(Schema.optional),
@@ -329,7 +329,7 @@ export const exchangeAuthorizationCode = Effect.fnUntraced(function* (options: {
 /**
  * Verifies an id token against the issuer's JWKS and decodes its claims,
  * checking the audience (the client id) and, when provided, the nonce. This
- * is the last step of the sign-in flow — the returned `sub` is the stable
+ * is the last step of the sign-in flow - the returned `sub` is the stable
  * account id at the provider to key local users on.
  *
  * @since 1.0.0

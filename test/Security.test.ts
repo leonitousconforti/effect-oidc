@@ -26,7 +26,7 @@ it.live("verifies against a JWKS containing a malformed key alongside the good o
         const token = yield* Jwt.sign({ privateJwk, payload: claims });
 
         // A compatible (ES256) but structurally broken key must be skipped,
-        // not fail the whole verification — one bad key in an otherwise-valid
+        // not fail the whole verification - one bad key in an otherwise-valid
         // JWKS must not deny service to tokens signed by the good keys.
         const { kid: _kid, ...kidless } = publicJwk;
         const brokenKey = { ...kidless, x: "!!!not-base64!!!" };
@@ -88,7 +88,7 @@ it.live("signs critical extension headers and enforces them fail-closed on verif
         );
 
         // Signing must populate `crit` with the declared critical header keys
-        // — callers cannot (ProtectedHeaderExtras excludes `crit`).
+        // - callers cannot (ProtectedHeaderExtras excludes `crit`).
         const flattened = yield* Jws.sign({
             privateKeys: [{ algorithm: "ES256", key: pair.privateKey }],
             criticalHeaders: { expiresAt: Schema.Number },

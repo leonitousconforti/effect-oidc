@@ -92,7 +92,7 @@ Since v1.0.0
 
 Returns whether a JWK is a symmetric (secret) key. Never accept such a key
 from an untrusted source (a token's `jku`/`jwk` header) for signature
-verification — that enables forgery.
+verification - that enables forgery.
 
 **Signature**
 
@@ -244,7 +244,7 @@ Since v1.0.0
 A JSON Web Key (JWK) as defined in RFC 7517. This is a discriminated union
 over the "kty" field, supporting EC, RSA, and symmetric (oct) key types.
 
-The union includes both public and private key representations — consumers
+The union includes both public and private key representations - consumers
 can narrow using the individual schemas (e.g. `EcPublicKey`,
 `RsaPrivateKey`) when a specific key form is expected. Private forms come
 first so that keys carrying private members decode as private keys.
@@ -841,7 +841,7 @@ Since v1.0.0
 
 An RSA private key represented as a JWK. Extends the public key with
 private key parameters. The "d" parameter is required; the CRT parameters
-("p", "q", "dp", "dq", "qi") should be included together — if any one of
+("p", "q", "dp", "dq", "qi") should be included together - if any one of
 them is present then all of them must be present, which the union encodes.
 
 **See**

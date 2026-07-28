@@ -166,7 +166,7 @@ export const JweEncryption = Schema.Literals([
 
 /**
  * Structural parameters for a JWE content encryption algorithm: the Content
- * Encryption Key size, IV size, and — for the composite AES-CBC-HMAC family —
+ * Encryption Key size, IV size, and (for the composite AES-CBC-HMAC family)
  * the split key sizes, authentication tag size, and HMAC hash.
  *
  * @since 1.0.0

@@ -29,7 +29,7 @@ I wanted "Sign in with Tinyburg" and OAuth apps that could gain user consent for
 
 ## Examples :rocket:
 
-Full runnable programs live in [examples/](./examples/) — a complete in-memory OIDC provider, a resource server protected by the bearer middleware, a client driving the whole authorization code + PKCE flow against them, plus smaller JWT and JWS walkthroughs. To watch the entire flow run locally:
+Full runnable programs live in [examples/](./examples/) - a complete in-memory OIDC provider, a resource server protected by the bearer middleware, a client driving the whole authorization code + PKCE flow against them, plus smaller JWT and JWS walkthroughs. To watch the entire flow run locally:
 
 ```sh
 pnpm tsx examples/02-oidc-provider.ts    # terminal 1: the provider

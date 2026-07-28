@@ -1,7 +1,7 @@
 /**
  * A resource server: an ordinary `HttpApi` service that accepts the demo
  * provider's access tokens. The `ResourceServer.Authorization` middleware
- * does all the OIDC work — it fetches and caches the issuer's JWKS, verifies
+ * does all the OIDC work - it fetches and caches the issuer's JWKS, verifies
  * bearer JWTs statelessly (no shared database, no per-request network hop),
  * and provides `CurrentUser` to the handlers. Individual endpoints gate
  * themselves with `requireScopes`.
@@ -31,7 +31,7 @@ const audience = "demo-api";
 const port = 3002;
 
 // ---------------------------------------------------------------------------
-// Api definition — attaching the middleware to the group protects every
+// Api definition - attaching the middleware to the group protects every
 // endpoint in it.
 // ---------------------------------------------------------------------------
 
@@ -60,7 +60,7 @@ const Api = HttpApi.make("demo-api").add(
 );
 
 // ---------------------------------------------------------------------------
-// Handlers — `CurrentUser` is the verified caller: the account (`sub`), the
+// Handlers - `CurrentUser` is the verified caller: the account (`sub`), the
 // granted scopes, and the OAuth client acting on the account's behalf.
 // ---------------------------------------------------------------------------
 
@@ -95,7 +95,7 @@ const NotesLive = HttpApiBuilder.group(Api, "notes", (handlers) =>
 );
 
 // ---------------------------------------------------------------------------
-// Wire and serve — the middleware implementation needs an HttpClient for the
+// Wire and serve - the middleware implementation needs an HttpClient for the
 // (cached) JWKS fetch.
 // ---------------------------------------------------------------------------
 

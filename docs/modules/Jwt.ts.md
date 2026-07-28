@@ -60,7 +60,7 @@ Since v1.0.0
 ## generateSigningKey
 
 Generates a fresh ES256 signing key pair with a random `kid`. Intended for
-provider key provisioning/rotation scripts — persist the private JWK as a
+provider key provisioning/rotation scripts - persist the private JWK as a
 secret and publish the public JWK in the JWKS document.
 
 **Signature**
@@ -406,7 +406,7 @@ Since v1.0.0
 ## PrivateJwkSchema
 
 Private EC signing key, held only by the provider. Load it from secret
-configuration — it is never serialized into any response.
+configuration - it is never serialized into any response.
 
 **Signature**
 
@@ -581,7 +581,7 @@ Since v1.0.0
 
 Verifies a compact-serialized JWT against a JWKS: signature (any supported
 JWS algorithm, with `kid`-based key selection), `exp`/`nbf` (with 30s
-skew), and — when provided — `iss` and `aud`. Returns the validated
+skew), and, when provided, `iss` and `aud`. Returns the validated
 standard claims plus the rest record for decoding token-specific claims
 with a more precise schema.
 

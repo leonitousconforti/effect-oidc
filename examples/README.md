@@ -1,6 +1,6 @@
 # Examples
 
-Full, runnable programs covering the library end to end. Each file is standalone and heavily commented — reading them in order tells the whole story:
+Full, runnable programs covering the library end to end. Each file is standalone and heavily commented - reading them in order tells the whole story:
 
 | Example                                                  | What it shows                                                                                                                                 |
 | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -19,7 +19,7 @@ From the repository root (after `pnpm install`):
 pnpm tsx examples/01-jwt-sign-and-verify.ts
 pnpm tsx examples/05-jws-advanced.ts
 
-# The full three-party OIDC flow — three terminals:
+# The full three-party OIDC flow - three terminals:
 pnpm tsx examples/02-oidc-provider.ts    # terminal 1: the provider  (http://localhost:3001)
 pnpm tsx examples/03-resource-server.ts  # terminal 2: the protected API (http://localhost:3002)
 pnpm tsx examples/04-oidc-client.ts      # terminal 3: the client, driving the whole flow
@@ -31,5 +31,5 @@ The client walks through discovery → PKCE → authorization redirect → code 
 
 These examples optimize for being readable and runnable on localhost:
 
-- The provider issues over plain `http` and the client therefore fetches discovery manually — real clients should use `Oidc.fetchDiscovery`, which enforces the https/same-origin endpoint validation the spec requires.
+- The provider issues over plain `http` and the client therefore fetches discovery manually - real clients should use `Oidc.fetchDiscovery`, which enforces the https/same-origin endpoint validation the spec requires.
 - The provider auto-approves a hard-coded user where a real one renders login and consent pages, and it keeps keys, codes, and refresh tokens in memory.

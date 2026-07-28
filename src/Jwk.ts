@@ -135,7 +135,7 @@ const JwkCommonFields = Schema.Struct({
  * @see https://www.rfc-editor.org/rfc/rfc7518#section-6.2.1
  */
 export const EcPublicKey = Schema.Struct({
-    /** Key Type — MUST be "EC" */
+    /** Key Type - MUST be "EC" */
     kty: Schema.Literal("EC"),
 
     /** @see https://www.rfc-editor.org/rfc/rfc7518#section-6.2.1.1 */
@@ -213,7 +213,7 @@ const OtherPrimeInfo = Schema.Struct({
  * @see https://www.rfc-editor.org/rfc/rfc7518#section-6.3.1
  */
 export const RsaPublicKey = Schema.Struct({
-    /** Key Type — MUST be "RSA" */
+    /** Key Type - MUST be "RSA" */
     kty: Schema.Literal("RSA"),
 
     /**
@@ -240,7 +240,7 @@ export const RsaPublicKey = Schema.Struct({
 /**
  * An RSA private key represented as a JWK. Extends the public key with
  * private key parameters. The "d" parameter is required; the CRT parameters
- * ("p", "q", "dp", "dq", "qi") should be included together — if any one of
+ * ("p", "q", "dp", "dq", "qi") should be included together - if any one of
  * them is present then all of them must be present, which the union encodes.
  *
  * @since 1.0.0
@@ -301,7 +301,7 @@ export const RsaPrivateKey = Schema.Union([
  * @see https://www.rfc-editor.org/rfc/rfc7518#section-6.4
  */
 export const OctKey = Schema.Struct({
-    /** Key Type — MUST be "oct" */
+    /** Key Type - MUST be "oct" */
     kty: Schema.Literal("oct"),
 
     /**
@@ -322,7 +322,7 @@ export const OctKey = Schema.Struct({
  * A JSON Web Key (JWK) as defined in RFC 7517. This is a discriminated union
  * over the "kty" field, supporting EC, RSA, and symmetric (oct) key types.
  *
- * The union includes both public and private key representations — consumers
+ * The union includes both public and private key representations - consumers
  * can narrow using the individual schemas (e.g. `EcPublicKey`,
  * `RsaPrivateKey`) when a specific key form is expected. Private forms come
  * first so that keys carrying private members decode as private keys.
@@ -390,7 +390,7 @@ export const isCompatibleWith = (alg: (typeof JwsAlgorithm)["Type"], jwk: (typeo
 /**
  * Returns whether a JWK is a symmetric (secret) key. Never accept such a key
  * from an untrusted source (a token's `jku`/`jwk` header) for signature
- * verification — that enables forgery.
+ * verification - that enables forgery.
  *
  * @since 1.0.0
  * @category Compatibility
