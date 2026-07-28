@@ -11,10 +11,43 @@
  * algorithm. Those two parameter sets differ (e.g. ECDSA import needs
  * `namedCurve` while signing needs `hash`), so they are exposed separately.
  *
+ * It also defines the JWE algorithm identifiers: the "alg" key management
+ * algorithms (RFC 7518 Section 4) used to encrypt or derive the Content
+ * Encryption Key, the "enc" content encryption algorithms (RFC 7518
+ * Section 5) that perform authenticated encryption on the plaintext, and the
+ * structural parameters (key/IV/tag sizes) each content encryption algorithm
+ * requires.
+ *
  * @since 1.0.0
  * @see https://www.rfc-editor.org/rfc/rfc7518 - JSON Web Algorithms (JWA)
  */
 export * as Jwa from "./Jwa.ts"
+
+/**
+ * JSON Web Encryption (JWE) based on RFC 7516.
+ *
+ * This module provides the JWE Compact Serialization together with WebCrypto
+ * backed authenticated encryption and decryption. It supports the AES-GCM and
+ * AES-CBC-HMAC-SHA2 content encryption families and the `dir`, RSA-OAEP,
+ * AES key wrap, AES-GCM key wrap, ECDH-ES (direct and key-wrap), and PBES2
+ * key management families.
+ *
+ * `RSA1_5` key management is intentionally unsupported — the Web Crypto API
+ * does not implement RSAES-PKCS1-v1_5 encryption and RFC 8725 discourages it.
+ *
+ * Security note: AES-GCM (content encryption and `A*GCMKW` key wrapping) uses
+ * a fresh random 96-bit IV per operation. Random 96-bit nonces are only safe
+ * up to roughly 2^32 encryptions under a single fixed key before the
+ * birthday-bound collision risk becomes non-negligible; this matters for
+ * `dir` with a reused Content Encryption Key and for a reused `A*GCMKW`
+ * key-encryption key. Rotate long-lived symmetric keys well before that
+ * bound, or prefer a key-management mode that derives a fresh CEK per message.
+ *
+ * @since 1.0.0
+ * @see https://www.rfc-editor.org/rfc/rfc7516 - JSON Web Encryption (JWE)
+ * @see https://www.rfc-editor.org/rfc/rfc7518 - JSON Web Algorithms (JWA)
+ */
+export * as Jwe from "./Jwe.ts"
 
 /**
  * JSON Web Key (JWK) schemas based on RFC 7517 and RFC 7518 Section 6.
