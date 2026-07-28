@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - run: pnpm install
+      - run: pnpm clean
+      - run: pnpm codegen
+      - run: pnpm docgen
+      - run: git restore docs/_config.yml
+      - run: git add src && git diff-index --cached HEAD --exit-code src
+      - run: pnpm check
+      - run: pnpm circular
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm test

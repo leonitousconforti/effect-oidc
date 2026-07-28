@@ -1,0 +1,23 @@
+{
+    "$schema": "https://json.schemastore.org/tsconfig",
+    "extends": "./tsconfig.base.json",
+    "references": [{ "path": "tsconfig.build.json" }],
+    "include": ["**/vitest.*.ts", "./test/**/*.ts"],
+    "compilerOptions": {
+        "rootDir": ".",
+        "noEmit": true,
+        "erasableSyntaxOnly": false,
+        "resolveJsonModule": true,
+        "types": ["node"],
+        "paths": {
+            "effect-oidc": ["./src/index.ts"],
+            "effect-oidc/*": ["./src/*.ts"]
+        },
+        "plugins": [
+            {
+                "name": "@effect/language-service",
+                "namespaceImportPackages": []
+            }
+        ]
+    }
+}
