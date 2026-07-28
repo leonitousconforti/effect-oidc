@@ -248,15 +248,10 @@ export const RsaPublicKey = Schema.Struct({
  * @see https://www.rfc-editor.org/rfc/rfc7518#section-6.3.2
  */
 export const RsaPrivateKey = Schema.Union([
-    Schema.Struct({
-        ...RsaPublicKey.fields,
-
-        /** @see https://www.rfc-editor.org/rfc/rfc7518#section-6.3.2.1 */
-        d: Schema.String,
-
-        /** @see https://www.rfc-editor.org/rfc/rfc7518#section-6.3.2.7 */
-        oth: Schema.optional(Schema.Array(OtherPrimeInfo)),
-    }),
+    // The full CRT form must come first: a JWK carrying the CRT parameters
+    // also structurally satisfies the d-only member, and Struct decoding
+    // drops unlisted fields, so a d-only-first union would silently discard
+    // the CRT parameters of a complete private key.
     Schema.Struct({
         ...RsaPublicKey.fields,
 
@@ -277,6 +272,15 @@ export const RsaPrivateKey = Schema.Union([
 
         /** @see https://www.rfc-editor.org/rfc/rfc7518#section-6.3.2.6 */
         qi: Schema.String,
+
+        /** @see https://www.rfc-editor.org/rfc/rfc7518#section-6.3.2.7 */
+        oth: Schema.optional(Schema.Array(OtherPrimeInfo)),
+    }),
+    Schema.Struct({
+        ...RsaPublicKey.fields,
+
+        /** @see https://www.rfc-editor.org/rfc/rfc7518#section-6.3.2.1 */
+        d: Schema.String,
 
         /** @see https://www.rfc-editor.org/rfc/rfc7518#section-6.3.2.7 */
         oth: Schema.optional(Schema.Array(OtherPrimeInfo)),
