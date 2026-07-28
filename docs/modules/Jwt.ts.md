@@ -1,6 +1,6 @@
 ---
 title: Jwt.ts
-nav_order: 5
+nav_order: 6
 parent: Modules
 ---
 
@@ -233,6 +233,11 @@ declare const JwksSchema: Schema.Struct<{
           readonly [
             Schema.Struct<{
               readonly d: Schema.String
+              readonly p: Schema.String
+              readonly q: Schema.String
+              readonly dp: Schema.String
+              readonly dq: Schema.String
+              readonly qi: Schema.String
               readonly oth: Schema.optional<
                 Schema.$Array<
                   Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
@@ -275,11 +280,6 @@ declare const JwksSchema: Schema.Struct<{
             }>,
             Schema.Struct<{
               readonly d: Schema.String
-              readonly p: Schema.String
-              readonly q: Schema.String
-              readonly dp: Schema.String
-              readonly dq: Schema.String
-              readonly qi: Schema.String
               readonly oth: Schema.optional<
                 Schema.$Array<
                   Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>

@@ -1,6 +1,6 @@
 ---
 title: Oidc.ts
-nav_order: 6
+nav_order: 7
 parent: Modules
 ---
 
@@ -184,6 +184,11 @@ declare const fetchJwks: (
           readonly d: string
           readonly n: string
           readonly e: string
+          readonly p: string
+          readonly q: string
+          readonly dp: string
+          readonly dq: string
+          readonly qi: string
           readonly use?: "sig" | "enc" | undefined
           readonly key_ops?:
             | ReadonlyArray<
@@ -216,11 +221,6 @@ declare const fetchJwks: (
           readonly d: string
           readonly n: string
           readonly e: string
-          readonly p: string
-          readonly q: string
-          readonly dp: string
-          readonly dq: string
-          readonly qi: string
           readonly use?: "sig" | "enc" | undefined
           readonly key_ops?:
             | ReadonlyArray<

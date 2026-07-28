@@ -1,6 +1,6 @@
 ---
 title: Jws.ts
-nav_order: 4
+nav_order: 5
 parent: Modules
 ---
 
@@ -234,6 +234,11 @@ declare const JoseHeader: VariantSchema.Struct<{
           readonly [
             Schema.Struct<{
               readonly d: Schema.String
+              readonly p: Schema.String
+              readonly q: Schema.String
+              readonly dp: Schema.String
+              readonly dq: Schema.String
+              readonly qi: Schema.String
               readonly oth: Schema.optional<
                 Schema.$Array<
                   Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
@@ -276,11 +281,6 @@ declare const JoseHeader: VariantSchema.Struct<{
             }>,
             Schema.Struct<{
               readonly d: Schema.String
-              readonly p: Schema.String
-              readonly q: Schema.String
-              readonly dp: Schema.String
-              readonly dq: Schema.String
-              readonly qi: Schema.String
               readonly oth: Schema.optional<
                 Schema.$Array<
                   Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
@@ -523,6 +523,11 @@ declare const JoseProtectedHeader: Schema.Struct<{
           readonly [
             Schema.Struct<{
               readonly d: Schema.String
+              readonly p: Schema.String
+              readonly q: Schema.String
+              readonly dp: Schema.String
+              readonly dq: Schema.String
+              readonly qi: Schema.String
               readonly oth: Schema.optional<
                 Schema.$Array<
                   Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
@@ -565,11 +570,6 @@ declare const JoseProtectedHeader: Schema.Struct<{
             }>,
             Schema.Struct<{
               readonly d: Schema.String
-              readonly p: Schema.String
-              readonly q: Schema.String
-              readonly dp: Schema.String
-              readonly dq: Schema.String
-              readonly qi: Schema.String
               readonly oth: Schema.optional<
                 Schema.$Array<
                   Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
@@ -814,6 +814,11 @@ declare const JoseUnprotectedHeader: Schema.Struct<{
           readonly [
             Schema.Struct<{
               readonly d: Schema.String
+              readonly p: Schema.String
+              readonly q: Schema.String
+              readonly dp: Schema.String
+              readonly dq: Schema.String
+              readonly qi: Schema.String
               readonly oth: Schema.optional<
                 Schema.$Array<
                   Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
@@ -856,11 +861,6 @@ declare const JoseUnprotectedHeader: Schema.Struct<{
             }>,
             Schema.Struct<{
               readonly d: Schema.String
-              readonly p: Schema.String
-              readonly q: Schema.String
-              readonly dp: Schema.String
-              readonly dq: Schema.String
-              readonly qi: Schema.String
               readonly oth: Schema.optional<
                 Schema.$Array<
                   Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
@@ -1269,6 +1269,11 @@ declare const verify: <
                             readonly [
                               Schema.Struct<{
                                 readonly d: Schema.String
+                                readonly p: Schema.String
+                                readonly q: Schema.String
+                                readonly dp: Schema.String
+                                readonly dq: Schema.String
+                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -1324,11 +1329,6 @@ declare const verify: <
                               }>,
                               Schema.Struct<{
                                 readonly d: Schema.String
-                                readonly p: Schema.String
-                                readonly q: Schema.String
-                                readonly dp: Schema.String
-                                readonly dq: Schema.String
-                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -1624,6 +1624,11 @@ declare const verify: <
                               readonly [
                                 Schema.Struct<{
                                   readonly d: Schema.String
+                                  readonly p: Schema.String
+                                  readonly q: Schema.String
+                                  readonly dp: Schema.String
+                                  readonly dq: Schema.String
+                                  readonly qi: Schema.String
                                   readonly oth: Schema.optional<
                                     Schema.$Array<
                                       Schema.Struct<{
@@ -1679,11 +1684,6 @@ declare const verify: <
                                 }>,
                                 Schema.Struct<{
                                   readonly d: Schema.String
-                                  readonly p: Schema.String
-                                  readonly q: Schema.String
-                                  readonly dp: Schema.String
-                                  readonly dq: Schema.String
-                                  readonly qi: Schema.String
                                   readonly oth: Schema.optional<
                                     Schema.$Array<
                                       Schema.Struct<{
@@ -1984,6 +1984,11 @@ declare const verify: <
                           readonly [
                             Schema.Struct<{
                               readonly d: Schema.String
+                              readonly p: Schema.String
+                              readonly q: Schema.String
+                              readonly dp: Schema.String
+                              readonly dq: Schema.String
+                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -2039,11 +2044,6 @@ declare const verify: <
                             }>,
                             Schema.Struct<{
                               readonly d: Schema.String
-                              readonly p: Schema.String
-                              readonly q: Schema.String
-                              readonly dp: Schema.String
-                              readonly dq: Schema.String
-                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -2339,6 +2339,11 @@ declare const verify: <
                             readonly [
                               Schema.Struct<{
                                 readonly d: Schema.String
+                                readonly p: Schema.String
+                                readonly q: Schema.String
+                                readonly dp: Schema.String
+                                readonly dq: Schema.String
+                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -2394,11 +2399,6 @@ declare const verify: <
                               }>,
                               Schema.Struct<{
                                 readonly d: Schema.String
-                                readonly p: Schema.String
-                                readonly q: Schema.String
-                                readonly dp: Schema.String
-                                readonly dq: Schema.String
-                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -2702,6 +2702,11 @@ declare const verify: <
                           readonly [
                             Schema.Struct<{
                               readonly d: Schema.String
+                              readonly p: Schema.String
+                              readonly q: Schema.String
+                              readonly dp: Schema.String
+                              readonly dq: Schema.String
+                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -2757,11 +2762,6 @@ declare const verify: <
                             }>,
                             Schema.Struct<{
                               readonly d: Schema.String
-                              readonly p: Schema.String
-                              readonly q: Schema.String
-                              readonly dp: Schema.String
-                              readonly dq: Schema.String
-                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -3057,6 +3057,11 @@ declare const verify: <
                             readonly [
                               Schema.Struct<{
                                 readonly d: Schema.String
+                                readonly p: Schema.String
+                                readonly q: Schema.String
+                                readonly dp: Schema.String
+                                readonly dq: Schema.String
+                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -3112,11 +3117,6 @@ declare const verify: <
                               }>,
                               Schema.Struct<{
                                 readonly d: Schema.String
-                                readonly p: Schema.String
-                                readonly q: Schema.String
-                                readonly dp: Schema.String
-                                readonly dq: Schema.String
-                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -3417,6 +3417,11 @@ declare const verify: <
                         readonly [
                           Schema.Struct<{
                             readonly d: Schema.String
+                            readonly p: Schema.String
+                            readonly q: Schema.String
+                            readonly dp: Schema.String
+                            readonly dq: Schema.String
+                            readonly qi: Schema.String
                             readonly oth: Schema.optional<
                               Schema.$Array<
                                 Schema.Struct<{
@@ -3472,11 +3477,6 @@ declare const verify: <
                           }>,
                           Schema.Struct<{
                             readonly d: Schema.String
-                            readonly p: Schema.String
-                            readonly q: Schema.String
-                            readonly dp: Schema.String
-                            readonly dq: Schema.String
-                            readonly qi: Schema.String
                             readonly oth: Schema.optional<
                               Schema.$Array<
                                 Schema.Struct<{
@@ -3772,6 +3772,11 @@ declare const verify: <
                           readonly [
                             Schema.Struct<{
                               readonly d: Schema.String
+                              readonly p: Schema.String
+                              readonly q: Schema.String
+                              readonly dp: Schema.String
+                              readonly dq: Schema.String
+                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -3827,11 +3832,6 @@ declare const verify: <
                             }>,
                             Schema.Struct<{
                               readonly d: Schema.String
-                              readonly p: Schema.String
-                              readonly q: Schema.String
-                              readonly dp: Schema.String
-                              readonly dq: Schema.String
-                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -4141,6 +4141,11 @@ declare const verify: <
                             readonly [
                               Schema.Struct<{
                                 readonly d: Schema.String
+                                readonly p: Schema.String
+                                readonly q: Schema.String
+                                readonly dp: Schema.String
+                                readonly dq: Schema.String
+                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -4196,11 +4201,6 @@ declare const verify: <
                               }>,
                               Schema.Struct<{
                                 readonly d: Schema.String
-                                readonly p: Schema.String
-                                readonly q: Schema.String
-                                readonly dp: Schema.String
-                                readonly dq: Schema.String
-                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -4496,6 +4496,11 @@ declare const verify: <
                               readonly [
                                 Schema.Struct<{
                                   readonly d: Schema.String
+                                  readonly p: Schema.String
+                                  readonly q: Schema.String
+                                  readonly dp: Schema.String
+                                  readonly dq: Schema.String
+                                  readonly qi: Schema.String
                                   readonly oth: Schema.optional<
                                     Schema.$Array<
                                       Schema.Struct<{
@@ -4551,11 +4556,6 @@ declare const verify: <
                                 }>,
                                 Schema.Struct<{
                                   readonly d: Schema.String
-                                  readonly p: Schema.String
-                                  readonly q: Schema.String
-                                  readonly dp: Schema.String
-                                  readonly dq: Schema.String
-                                  readonly qi: Schema.String
                                   readonly oth: Schema.optional<
                                     Schema.$Array<
                                       Schema.Struct<{
@@ -4856,6 +4856,11 @@ declare const verify: <
                           readonly [
                             Schema.Struct<{
                               readonly d: Schema.String
+                              readonly p: Schema.String
+                              readonly q: Schema.String
+                              readonly dp: Schema.String
+                              readonly dq: Schema.String
+                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -4911,11 +4916,6 @@ declare const verify: <
                             }>,
                             Schema.Struct<{
                               readonly d: Schema.String
-                              readonly p: Schema.String
-                              readonly q: Schema.String
-                              readonly dp: Schema.String
-                              readonly dq: Schema.String
-                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -5211,6 +5211,11 @@ declare const verify: <
                             readonly [
                               Schema.Struct<{
                                 readonly d: Schema.String
+                                readonly p: Schema.String
+                                readonly q: Schema.String
+                                readonly dp: Schema.String
+                                readonly dq: Schema.String
+                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -5266,11 +5271,6 @@ declare const verify: <
                               }>,
                               Schema.Struct<{
                                 readonly d: Schema.String
-                                readonly p: Schema.String
-                                readonly q: Schema.String
-                                readonly dp: Schema.String
-                                readonly dq: Schema.String
-                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -5574,6 +5574,11 @@ declare const verify: <
                           readonly [
                             Schema.Struct<{
                               readonly d: Schema.String
+                              readonly p: Schema.String
+                              readonly q: Schema.String
+                              readonly dp: Schema.String
+                              readonly dq: Schema.String
+                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -5629,11 +5634,6 @@ declare const verify: <
                             }>,
                             Schema.Struct<{
                               readonly d: Schema.String
-                              readonly p: Schema.String
-                              readonly q: Schema.String
-                              readonly dp: Schema.String
-                              readonly dq: Schema.String
-                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -5929,6 +5929,11 @@ declare const verify: <
                             readonly [
                               Schema.Struct<{
                                 readonly d: Schema.String
+                                readonly p: Schema.String
+                                readonly q: Schema.String
+                                readonly dp: Schema.String
+                                readonly dq: Schema.String
+                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -5984,11 +5989,6 @@ declare const verify: <
                               }>,
                               Schema.Struct<{
                                 readonly d: Schema.String
-                                readonly p: Schema.String
-                                readonly q: Schema.String
-                                readonly dp: Schema.String
-                                readonly dq: Schema.String
-                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -6289,6 +6289,11 @@ declare const verify: <
                         readonly [
                           Schema.Struct<{
                             readonly d: Schema.String
+                            readonly p: Schema.String
+                            readonly q: Schema.String
+                            readonly dp: Schema.String
+                            readonly dq: Schema.String
+                            readonly qi: Schema.String
                             readonly oth: Schema.optional<
                               Schema.$Array<
                                 Schema.Struct<{
@@ -6344,11 +6349,6 @@ declare const verify: <
                           }>,
                           Schema.Struct<{
                             readonly d: Schema.String
-                            readonly p: Schema.String
-                            readonly q: Schema.String
-                            readonly dp: Schema.String
-                            readonly dq: Schema.String
-                            readonly qi: Schema.String
                             readonly oth: Schema.optional<
                               Schema.$Array<
                                 Schema.Struct<{
@@ -6644,6 +6644,11 @@ declare const verify: <
                           readonly [
                             Schema.Struct<{
                               readonly d: Schema.String
+                              readonly p: Schema.String
+                              readonly q: Schema.String
+                              readonly dp: Schema.String
+                              readonly dq: Schema.String
+                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -6699,11 +6704,6 @@ declare const verify: <
                             }>,
                             Schema.Struct<{
                               readonly d: Schema.String
-                              readonly p: Schema.String
-                              readonly q: Schema.String
-                              readonly dp: Schema.String
-                              readonly dq: Schema.String
-                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -7012,6 +7012,11 @@ declare const verify: <
                             readonly [
                               Schema.Struct<{
                                 readonly d: Schema.String
+                                readonly p: Schema.String
+                                readonly q: Schema.String
+                                readonly dp: Schema.String
+                                readonly dq: Schema.String
+                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -7067,11 +7072,6 @@ declare const verify: <
                               }>,
                               Schema.Struct<{
                                 readonly d: Schema.String
-                                readonly p: Schema.String
-                                readonly q: Schema.String
-                                readonly dp: Schema.String
-                                readonly dq: Schema.String
-                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -7367,6 +7367,11 @@ declare const verify: <
                               readonly [
                                 Schema.Struct<{
                                   readonly d: Schema.String
+                                  readonly p: Schema.String
+                                  readonly q: Schema.String
+                                  readonly dp: Schema.String
+                                  readonly dq: Schema.String
+                                  readonly qi: Schema.String
                                   readonly oth: Schema.optional<
                                     Schema.$Array<
                                       Schema.Struct<{
@@ -7422,11 +7427,6 @@ declare const verify: <
                                 }>,
                                 Schema.Struct<{
                                   readonly d: Schema.String
-                                  readonly p: Schema.String
-                                  readonly q: Schema.String
-                                  readonly dp: Schema.String
-                                  readonly dq: Schema.String
-                                  readonly qi: Schema.String
                                   readonly oth: Schema.optional<
                                     Schema.$Array<
                                       Schema.Struct<{
@@ -7727,6 +7727,11 @@ declare const verify: <
                           readonly [
                             Schema.Struct<{
                               readonly d: Schema.String
+                              readonly p: Schema.String
+                              readonly q: Schema.String
+                              readonly dp: Schema.String
+                              readonly dq: Schema.String
+                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -7782,11 +7787,6 @@ declare const verify: <
                             }>,
                             Schema.Struct<{
                               readonly d: Schema.String
-                              readonly p: Schema.String
-                              readonly q: Schema.String
-                              readonly dp: Schema.String
-                              readonly dq: Schema.String
-                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -8082,6 +8082,11 @@ declare const verify: <
                             readonly [
                               Schema.Struct<{
                                 readonly d: Schema.String
+                                readonly p: Schema.String
+                                readonly q: Schema.String
+                                readonly dp: Schema.String
+                                readonly dq: Schema.String
+                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -8137,11 +8142,6 @@ declare const verify: <
                               }>,
                               Schema.Struct<{
                                 readonly d: Schema.String
-                                readonly p: Schema.String
-                                readonly q: Schema.String
-                                readonly dp: Schema.String
-                                readonly dq: Schema.String
-                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -8445,6 +8445,11 @@ declare const verify: <
                           readonly [
                             Schema.Struct<{
                               readonly d: Schema.String
+                              readonly p: Schema.String
+                              readonly q: Schema.String
+                              readonly dp: Schema.String
+                              readonly dq: Schema.String
+                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -8500,11 +8505,6 @@ declare const verify: <
                             }>,
                             Schema.Struct<{
                               readonly d: Schema.String
-                              readonly p: Schema.String
-                              readonly q: Schema.String
-                              readonly dp: Schema.String
-                              readonly dq: Schema.String
-                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -8800,6 +8800,11 @@ declare const verify: <
                             readonly [
                               Schema.Struct<{
                                 readonly d: Schema.String
+                                readonly p: Schema.String
+                                readonly q: Schema.String
+                                readonly dp: Schema.String
+                                readonly dq: Schema.String
+                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -8855,11 +8860,6 @@ declare const verify: <
                               }>,
                               Schema.Struct<{
                                 readonly d: Schema.String
-                                readonly p: Schema.String
-                                readonly q: Schema.String
-                                readonly dp: Schema.String
-                                readonly dq: Schema.String
-                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -9160,6 +9160,11 @@ declare const verify: <
                         readonly [
                           Schema.Struct<{
                             readonly d: Schema.String
+                            readonly p: Schema.String
+                            readonly q: Schema.String
+                            readonly dp: Schema.String
+                            readonly dq: Schema.String
+                            readonly qi: Schema.String
                             readonly oth: Schema.optional<
                               Schema.$Array<
                                 Schema.Struct<{
@@ -9215,11 +9220,6 @@ declare const verify: <
                           }>,
                           Schema.Struct<{
                             readonly d: Schema.String
-                            readonly p: Schema.String
-                            readonly q: Schema.String
-                            readonly dp: Schema.String
-                            readonly dq: Schema.String
-                            readonly qi: Schema.String
                             readonly oth: Schema.optional<
                               Schema.$Array<
                                 Schema.Struct<{
@@ -9515,6 +9515,11 @@ declare const verify: <
                           readonly [
                             Schema.Struct<{
                               readonly d: Schema.String
+                              readonly p: Schema.String
+                              readonly q: Schema.String
+                              readonly dp: Schema.String
+                              readonly dq: Schema.String
+                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -9570,11 +9575,6 @@ declare const verify: <
                             }>,
                             Schema.Struct<{
                               readonly d: Schema.String
-                              readonly p: Schema.String
-                              readonly q: Schema.String
-                              readonly dp: Schema.String
-                              readonly dq: Schema.String
-                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -9817,6 +9817,11 @@ declare const verify: <
                 readonly d: string
                 readonly n: string
                 readonly e: string
+                readonly p: string
+                readonly q: string
+                readonly dp: string
+                readonly dq: string
+                readonly qi: string
                 readonly use?: "sig" | "enc" | undefined
                 readonly key_ops?:
                   | ReadonlyArray<
@@ -9849,11 +9854,6 @@ declare const verify: <
                 readonly d: string
                 readonly n: string
                 readonly e: string
-                readonly p: string
-                readonly q: string
-                readonly dp: string
-                readonly dq: string
-                readonly qi: string
                 readonly use?: "sig" | "enc" | undefined
                 readonly key_ops?:
                   | ReadonlyArray<
@@ -10106,6 +10106,11 @@ declare const verify: <
                           readonly [
                             Schema.Struct<{
                               readonly d: Schema.String
+                              readonly p: Schema.String
+                              readonly q: Schema.String
+                              readonly dp: Schema.String
+                              readonly dq: Schema.String
+                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -10161,11 +10166,6 @@ declare const verify: <
                             }>,
                             Schema.Struct<{
                               readonly d: Schema.String
-                              readonly p: Schema.String
-                              readonly q: Schema.String
-                              readonly dp: Schema.String
-                              readonly dq: Schema.String
-                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -10461,6 +10461,11 @@ declare const verify: <
                             readonly [
                               Schema.Struct<{
                                 readonly d: Schema.String
+                                readonly p: Schema.String
+                                readonly q: Schema.String
+                                readonly dp: Schema.String
+                                readonly dq: Schema.String
+                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -10516,11 +10521,6 @@ declare const verify: <
                               }>,
                               Schema.Struct<{
                                 readonly d: Schema.String
-                                readonly p: Schema.String
-                                readonly q: Schema.String
-                                readonly dp: Schema.String
-                                readonly dq: Schema.String
-                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -10821,6 +10821,11 @@ declare const verify: <
                         readonly [
                           Schema.Struct<{
                             readonly d: Schema.String
+                            readonly p: Schema.String
+                            readonly q: Schema.String
+                            readonly dp: Schema.String
+                            readonly dq: Schema.String
+                            readonly qi: Schema.String
                             readonly oth: Schema.optional<
                               Schema.$Array<
                                 Schema.Struct<{
@@ -10876,11 +10881,6 @@ declare const verify: <
                           }>,
                           Schema.Struct<{
                             readonly d: Schema.String
-                            readonly p: Schema.String
-                            readonly q: Schema.String
-                            readonly dp: Schema.String
-                            readonly dq: Schema.String
-                            readonly qi: Schema.String
                             readonly oth: Schema.optional<
                               Schema.$Array<
                                 Schema.Struct<{
@@ -11176,6 +11176,11 @@ declare const verify: <
                           readonly [
                             Schema.Struct<{
                               readonly d: Schema.String
+                              readonly p: Schema.String
+                              readonly q: Schema.String
+                              readonly dp: Schema.String
+                              readonly dq: Schema.String
+                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -11231,11 +11236,6 @@ declare const verify: <
                             }>,
                             Schema.Struct<{
                               readonly d: Schema.String
-                              readonly p: Schema.String
-                              readonly q: Schema.String
-                              readonly dp: Schema.String
-                              readonly dq: Schema.String
-                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -11539,6 +11539,11 @@ declare const verify: <
                         readonly [
                           Schema.Struct<{
                             readonly d: Schema.String
+                            readonly p: Schema.String
+                            readonly q: Schema.String
+                            readonly dp: Schema.String
+                            readonly dq: Schema.String
+                            readonly qi: Schema.String
                             readonly oth: Schema.optional<
                               Schema.$Array<
                                 Schema.Struct<{
@@ -11594,11 +11599,6 @@ declare const verify: <
                           }>,
                           Schema.Struct<{
                             readonly d: Schema.String
-                            readonly p: Schema.String
-                            readonly q: Schema.String
-                            readonly dp: Schema.String
-                            readonly dq: Schema.String
-                            readonly qi: Schema.String
                             readonly oth: Schema.optional<
                               Schema.$Array<
                                 Schema.Struct<{
@@ -11894,6 +11894,11 @@ declare const verify: <
                           readonly [
                             Schema.Struct<{
                               readonly d: Schema.String
+                              readonly p: Schema.String
+                              readonly q: Schema.String
+                              readonly dp: Schema.String
+                              readonly dq: Schema.String
+                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -11949,11 +11954,6 @@ declare const verify: <
                             }>,
                             Schema.Struct<{
                               readonly d: Schema.String
-                              readonly p: Schema.String
-                              readonly q: Schema.String
-                              readonly dp: Schema.String
-                              readonly dq: Schema.String
-                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -12254,6 +12254,11 @@ declare const verify: <
                       readonly [
                         Schema.Struct<{
                           readonly d: Schema.String
+                          readonly p: Schema.String
+                          readonly q: Schema.String
+                          readonly dp: Schema.String
+                          readonly dq: Schema.String
+                          readonly qi: Schema.String
                           readonly oth: Schema.optional<
                             Schema.$Array<
                               Schema.Struct<{
@@ -12309,11 +12314,6 @@ declare const verify: <
                         }>,
                         Schema.Struct<{
                           readonly d: Schema.String
-                          readonly p: Schema.String
-                          readonly q: Schema.String
-                          readonly dp: Schema.String
-                          readonly dq: Schema.String
-                          readonly qi: Schema.String
                           readonly oth: Schema.optional<
                             Schema.$Array<
                               Schema.Struct<{
@@ -12609,6 +12609,11 @@ declare const verify: <
                         readonly [
                           Schema.Struct<{
                             readonly d: Schema.String
+                            readonly p: Schema.String
+                            readonly q: Schema.String
+                            readonly dp: Schema.String
+                            readonly dq: Schema.String
+                            readonly qi: Schema.String
                             readonly oth: Schema.optional<
                               Schema.$Array<
                                 Schema.Struct<{
@@ -12664,11 +12669,6 @@ declare const verify: <
                           }>,
                           Schema.Struct<{
                             readonly d: Schema.String
-                            readonly p: Schema.String
-                            readonly q: Schema.String
-                            readonly dp: Schema.String
-                            readonly dq: Schema.String
-                            readonly qi: Schema.String
                             readonly oth: Schema.optional<
                               Schema.$Array<
                                 Schema.Struct<{
@@ -12985,7 +12985,7 @@ declare const Signed: <
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L799)
+[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L806)
 
 Since v1.0.0
 
@@ -13139,6 +13139,11 @@ declare const Verified: <
                   readonly [
                     Schema.Struct<{
                       readonly d: Schema.String
+                      readonly p: Schema.String
+                      readonly q: Schema.String
+                      readonly dp: Schema.String
+                      readonly dq: Schema.String
+                      readonly qi: Schema.String
                       readonly oth: Schema.optional<
                         Schema.$Array<
                           Schema.Struct<{
@@ -13194,11 +13199,6 @@ declare const Verified: <
                     }>,
                     Schema.Struct<{
                       readonly d: Schema.String
-                      readonly p: Schema.String
-                      readonly q: Schema.String
-                      readonly dp: Schema.String
-                      readonly dq: Schema.String
-                      readonly qi: Schema.String
                       readonly oth: Schema.optional<
                         Schema.$Array<
                           Schema.Struct<{
@@ -13481,6 +13481,11 @@ declare const Verified: <
                             readonly [
                               Schema.Struct<{
                                 readonly d: Schema.String
+                                readonly p: Schema.String
+                                readonly q: Schema.String
+                                readonly dp: Schema.String
+                                readonly dq: Schema.String
+                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -13536,11 +13541,6 @@ declare const Verified: <
                               }>,
                               Schema.Struct<{
                                 readonly d: Schema.String
-                                readonly p: Schema.String
-                                readonly q: Schema.String
-                                readonly dp: Schema.String
-                                readonly dq: Schema.String
-                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -13836,6 +13836,11 @@ declare const Verified: <
                               readonly [
                                 Schema.Struct<{
                                   readonly d: Schema.String
+                                  readonly p: Schema.String
+                                  readonly q: Schema.String
+                                  readonly dp: Schema.String
+                                  readonly dq: Schema.String
+                                  readonly qi: Schema.String
                                   readonly oth: Schema.optional<
                                     Schema.$Array<
                                       Schema.Struct<{
@@ -13891,11 +13896,6 @@ declare const Verified: <
                                 }>,
                                 Schema.Struct<{
                                   readonly d: Schema.String
-                                  readonly p: Schema.String
-                                  readonly q: Schema.String
-                                  readonly dp: Schema.String
-                                  readonly dq: Schema.String
-                                  readonly qi: Schema.String
                                   readonly oth: Schema.optional<
                                     Schema.$Array<
                                       Schema.Struct<{
@@ -14196,6 +14196,11 @@ declare const Verified: <
                           readonly [
                             Schema.Struct<{
                               readonly d: Schema.String
+                              readonly p: Schema.String
+                              readonly q: Schema.String
+                              readonly dp: Schema.String
+                              readonly dq: Schema.String
+                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -14251,11 +14256,6 @@ declare const Verified: <
                             }>,
                             Schema.Struct<{
                               readonly d: Schema.String
-                              readonly p: Schema.String
-                              readonly q: Schema.String
-                              readonly dp: Schema.String
-                              readonly dq: Schema.String
-                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -14551,6 +14551,11 @@ declare const Verified: <
                             readonly [
                               Schema.Struct<{
                                 readonly d: Schema.String
+                                readonly p: Schema.String
+                                readonly q: Schema.String
+                                readonly dp: Schema.String
+                                readonly dq: Schema.String
+                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -14606,11 +14611,6 @@ declare const Verified: <
                               }>,
                               Schema.Struct<{
                                 readonly d: Schema.String
-                                readonly p: Schema.String
-                                readonly q: Schema.String
-                                readonly dp: Schema.String
-                                readonly dq: Schema.String
-                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -14914,6 +14914,11 @@ declare const Verified: <
                           readonly [
                             Schema.Struct<{
                               readonly d: Schema.String
+                              readonly p: Schema.String
+                              readonly q: Schema.String
+                              readonly dp: Schema.String
+                              readonly dq: Schema.String
+                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -14969,11 +14974,6 @@ declare const Verified: <
                             }>,
                             Schema.Struct<{
                               readonly d: Schema.String
-                              readonly p: Schema.String
-                              readonly q: Schema.String
-                              readonly dp: Schema.String
-                              readonly dq: Schema.String
-                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -15269,6 +15269,11 @@ declare const Verified: <
                             readonly [
                               Schema.Struct<{
                                 readonly d: Schema.String
+                                readonly p: Schema.String
+                                readonly q: Schema.String
+                                readonly dp: Schema.String
+                                readonly dq: Schema.String
+                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -15324,11 +15329,6 @@ declare const Verified: <
                               }>,
                               Schema.Struct<{
                                 readonly d: Schema.String
-                                readonly p: Schema.String
-                                readonly q: Schema.String
-                                readonly dp: Schema.String
-                                readonly dq: Schema.String
-                                readonly qi: Schema.String
                                 readonly oth: Schema.optional<
                                   Schema.$Array<
                                     Schema.Struct<{
@@ -15629,6 +15629,11 @@ declare const Verified: <
                         readonly [
                           Schema.Struct<{
                             readonly d: Schema.String
+                            readonly p: Schema.String
+                            readonly q: Schema.String
+                            readonly dp: Schema.String
+                            readonly dq: Schema.String
+                            readonly qi: Schema.String
                             readonly oth: Schema.optional<
                               Schema.$Array<
                                 Schema.Struct<{
@@ -15684,11 +15689,6 @@ declare const Verified: <
                           }>,
                           Schema.Struct<{
                             readonly d: Schema.String
-                            readonly p: Schema.String
-                            readonly q: Schema.String
-                            readonly dp: Schema.String
-                            readonly dq: Schema.String
-                            readonly qi: Schema.String
                             readonly oth: Schema.optional<
                               Schema.$Array<
                                 Schema.Struct<{
@@ -15984,6 +15984,11 @@ declare const Verified: <
                           readonly [
                             Schema.Struct<{
                               readonly d: Schema.String
+                              readonly p: Schema.String
+                              readonly q: Schema.String
+                              readonly dp: Schema.String
+                              readonly dq: Schema.String
+                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -16039,11 +16044,6 @@ declare const Verified: <
                             }>,
                             Schema.Struct<{
                               readonly d: Schema.String
-                              readonly p: Schema.String
-                              readonly q: Schema.String
-                              readonly dp: Schema.String
-                              readonly dq: Schema.String
-                              readonly qi: Schema.String
                               readonly oth: Schema.optional<
                                 Schema.$Array<
                                   Schema.Struct<{
@@ -16234,6 +16234,6 @@ declare const Verified: <
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L741)
+[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jws.ts#L748)
 
 Since v1.0.0

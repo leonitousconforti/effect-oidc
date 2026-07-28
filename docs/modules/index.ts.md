@@ -14,6 +14,13 @@ parameter sets needed to import keys and to sign/verify with each
 algorithm. Those two parameter sets differ (e.g. ECDSA import needs
 `namedCurve` while signing needs `hash`), so they are exposed separately.
 
+It also defines the JWE algorithm identifiers: the "alg" key management
+algorithms (RFC 7518 Section 4) used to encrypt or derive the Content
+Encryption Key, the "enc" content encryption algorithms (RFC 7518
+Section 5) that perform authenticated encryption on the plaintext, and the
+structural parameters (key/IV/tag sizes) each content encryption algorithm
+requires.
+
 **See**
 
 - https://www.rfc-editor.org/rfc/rfc7518 - JSON Web Algorithms (JWA)
@@ -32,6 +39,7 @@ Since v1.0.0
   - [ResourceServer (namespace export)](#resourceserver-namespace-export)
 - [utils](#utils)
   - [Jwa (namespace export)](#jwa-namespace-export)
+  - [Jwe (namespace export)](#jwe-namespace-export)
   - [Jwk (namespace export)](#jwk-namespace-export)
   - [Jws (namespace export)](#jws-namespace-export)
 
@@ -53,7 +61,7 @@ Re-exports all named exports from the "./Jwt.ts" module as `Jwt`.
 export * as Jwt from "./Jwt.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L72)
+[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L105)
 
 Since v1.0.0
 
@@ -69,7 +77,7 @@ Re-exports all named exports from the "./Oidc.ts" module as `Oidc`.
 export * as Oidc from "./Oidc.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L89)
+[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L122)
 
 Since v1.0.0
 
@@ -85,7 +93,7 @@ Re-exports all named exports from the "./ResourceServer.ts" module as `ResourceS
 export * as ResourceServer from "./ResourceServer.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L122)
+[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L155)
 
 Since v1.0.0
 
@@ -105,7 +113,26 @@ Re-exports all named exports from the "./Jwa.ts" module as `Jwa`.
 export * as Jwa from "./Jwa.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L17)
+[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L24)
+
+Since v1.0.0
+
+## Jwe (namespace export)
+
+Re-exports all named exports from the "./Jwe.ts" module as `Jwe`.
+
+**See**
+
+- https://www.rfc-editor.org/rfc/rfc7516 - JSON Web Encryption (JWE)
+- https://www.rfc-editor.org/rfc/rfc7518 - JSON Web Algorithms (JWA)
+
+**Signature**
+
+```ts
+export * as Jwe from "./Jwe.ts"
+```
+
+[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L50)
 
 Since v1.0.0
 
@@ -124,7 +151,7 @@ Re-exports all named exports from the "./Jwk.ts" module as `Jwk`.
 export * as Jwk from "./Jwk.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L35)
+[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L68)
 
 Since v1.0.0
 
@@ -143,6 +170,6 @@ Re-exports all named exports from the "./Jws.ts" module as `Jws`.
 export * as Jws from "./Jws.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L57)
+[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/index.ts#L90)
 
 Since v1.0.0

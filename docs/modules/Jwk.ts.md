@@ -1,6 +1,6 @@
 ---
 title: Jwk.ts
-nav_order: 3
+nav_order: 4
 parent: Modules
 ---
 
@@ -70,7 +70,7 @@ algorithm (the classic asymmetric/symmetric confusion).
 declare const isCompatibleWith: (alg: (typeof JwsAlgorithm)["Type"], jwk: (typeof Jwk)["Type"]) => boolean
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L363)
+[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L367)
 
 Since v1.0.0
 
@@ -84,7 +84,7 @@ Returns whether a JWK carries private key material (`d` for EC/RSA).
 declare const isPrivate: (jwk: (typeof Jwk)["Type"]) => boolean
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L402)
+[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L406)
 
 Since v1.0.0
 
@@ -100,7 +100,7 @@ verification - that enables forgery.
 declare const isSymmetric: (jwk: (typeof Jwk)["Type"]) => boolean
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L394)
+[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L398)
 
 Since v1.0.0
 
@@ -337,6 +337,11 @@ declare const Jwk: Schema.Union<
       readonly [
         Schema.Struct<{
           readonly d: Schema.String
+          readonly p: Schema.String
+          readonly q: Schema.String
+          readonly dp: Schema.String
+          readonly dq: Schema.String
+          readonly qi: Schema.String
           readonly oth: Schema.optional<
             Schema.$Array<
               Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
@@ -379,11 +384,6 @@ declare const Jwk: Schema.Union<
         }>,
         Schema.Struct<{
           readonly d: Schema.String
-          readonly p: Schema.String
-          readonly q: Schema.String
-          readonly dp: Schema.String
-          readonly dq: Schema.String
-          readonly qi: Schema.String
           readonly oth: Schema.optional<
             Schema.$Array<
               Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
@@ -501,7 +501,7 @@ declare const Jwk: Schema.Union<
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L330)
+[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L334)
 
 Since v1.0.0
 
@@ -602,6 +602,11 @@ declare const JwkSet: Schema.Struct<{
           readonly [
             Schema.Struct<{
               readonly d: Schema.String
+              readonly p: Schema.String
+              readonly q: Schema.String
+              readonly dp: Schema.String
+              readonly dq: Schema.String
+              readonly qi: Schema.String
               readonly oth: Schema.optional<
                 Schema.$Array<
                   Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
@@ -644,11 +649,6 @@ declare const JwkSet: Schema.Struct<{
             }>,
             Schema.Struct<{
               readonly d: Schema.String
-              readonly p: Schema.String
-              readonly q: Schema.String
-              readonly dp: Schema.String
-              readonly dq: Schema.String
-              readonly qi: Schema.String
               readonly oth: Schema.optional<
                 Schema.$Array<
                   Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
@@ -768,7 +768,7 @@ declare const JwkSet: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L344)
+[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L348)
 
 Since v1.0.0
 
@@ -855,6 +855,11 @@ declare const RsaPrivateKey: Schema.Union<
   readonly [
     Schema.Struct<{
       readonly d: Schema.String
+      readonly p: Schema.String
+      readonly q: Schema.String
+      readonly dp: Schema.String
+      readonly dq: Schema.String
+      readonly qi: Schema.String
       readonly oth: Schema.optional<
         Schema.$Array<
           Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
@@ -897,11 +902,6 @@ declare const RsaPrivateKey: Schema.Union<
     }>,
     Schema.Struct<{
       readonly d: Schema.String
-      readonly p: Schema.String
-      readonly q: Schema.String
-      readonly dp: Schema.String
-      readonly dq: Schema.String
-      readonly qi: Schema.String
       readonly oth: Schema.optional<
         Schema.$Array<
           Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
@@ -1057,6 +1057,6 @@ declare const OctKey: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L299)
+[Source](https://github.com/leonitousconforti/effect-oidc/tree/main/src/Jwk.ts#L303)
 
 Since v1.0.0
