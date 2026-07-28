@@ -7,7 +7,7 @@
  * 2. Generate PKCE + state + nonce and build the authorization URL
  * 3. "Send the browser" there and receive the code on the redirect back
  * 4. Exchange the code (with the PKCE verifier) for tokens
- * 5. Verify the id token — the `sub` inside is the signed-in account
+ * 5. Verify the id token - the `sub` inside is the signed-in account
  * 6. Call the resource server with the access token
  * 7. Rotate the refresh token for a fresh access token
  *
@@ -33,7 +33,7 @@ class FlowError extends Data.TaggedError("FlowError")<{ readonly message: string
 
 const program = Effect.gen(function* () {
     // 1. Discovery. `Oidc.fetchDiscovery` is this fetch plus the mandatory
-    //    https/same-origin endpoint validation — use it against any real
+    //    https/same-origin endpoint validation - use it against any real
     //    issuer. The demo provider is plain http on localhost, so the
     //    document is fetched and decoded manually here.
     const discoveryResponse = yield* HttpClient.get(new URL("/.well-known/openid-configuration", issuer));
@@ -78,7 +78,7 @@ const program = Effect.gen(function* () {
     const code = callback.searchParams.get("code");
     if (code === null || callback.searchParams.get("state") !== state) {
         // A state mismatch means the callback was not the answer to OUR
-        // request — abort, this is the CSRF check.
+        // request - abort, this is the CSRF check.
         return yield* new FlowError({ message: "callback missing code or state mismatch" });
     }
     yield* Console.log("3. authorization code:", code);

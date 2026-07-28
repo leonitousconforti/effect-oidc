@@ -113,7 +113,7 @@ export const layer = (options: {
 
             // Cache the last successfully fetched JWKS. On a fetch failure we
             // serve the previous (stale) keys rather than failing every request
-            // for the whole TTL — a transient blip must not become a
+            // for the whole TTL - a transient blip must not become a
             // fleet-wide auth outage. The very first fetch still fails closed.
             const lastGood = yield* Ref.make<Option.Option<Schema.Schema.Type<typeof Jwt.JwksSchema>>>(Option.none());
             const cachedJwks = yield* Effect.cachedWithTTL(

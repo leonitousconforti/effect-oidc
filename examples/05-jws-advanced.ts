@@ -5,7 +5,7 @@
  * - The General JSON serialization: one payload carrying multiple
  *   signatures, so verifiers holding different keys can each check their own.
  * - Critical extension headers (`crit`): custom protected header parameters,
- *   schema-validated, that verifiers MUST understand — verification is
+ *   schema-validated, that verifiers MUST understand - verification is
  *   fail-closed for anyone who does not declare them.
  *
  * Run with:
@@ -37,7 +37,7 @@ const program = Effect.gen(function* () {
     );
 
     // -----------------------------------------------------------------------
-    // Multiple signatures — signing with one key produces the Flattened
+    // Multiple signatures - signing with one key produces the Flattened
     // serialization, with several the General serialization.
     // -----------------------------------------------------------------------
 
@@ -50,14 +50,14 @@ const program = Effect.gen(function* () {
     const general = yield* coSign("attest: artifact sha256:3f785...", {});
     yield* Console.log("general serialization:", general);
 
-    // A verifier holding only ONE of the public keys still accepts it — any
+    // A verifier holding only ONE of the public keys still accepts it - any
     // valid signature over the payload is enough.
     const decoded = yield* Schema.decodeUnknownEffect(Jws.General)(general);
     const viaRsa = yield* Jws.verify({ publicKeys: [rsaPair.publicKey] })(decoded);
     yield* Console.log("verified by", viaRsa.protected.kid, "->", viaRsa.payload);
 
     // -----------------------------------------------------------------------
-    // Critical extension headers — declared with a schema at sign time, and
+    // Critical extension headers - declared with a schema at sign time, and
     // required knowledge at verify time.
     // -----------------------------------------------------------------------
 
@@ -71,7 +71,7 @@ const program = Effect.gen(function* () {
     const unverified = yield* Schema.decodeUnknownEffect(Jws.Flattened)(flattened);
 
     // A verifier that does NOT declare the extension must reject the token
-    // (RFC 7515 Section 4.1.11) — unknown critical headers are not skippable.
+    // (RFC 7515 Section 4.1.11) - unknown critical headers are not skippable.
     const unaware = yield* Effect.flip(Jws.verify({ publicKeys: [ecPair.publicKey] })(unverified));
     yield* Console.log("unaware verifier rejects:", unaware._tag);
 

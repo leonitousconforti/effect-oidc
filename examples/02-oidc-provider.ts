@@ -1,12 +1,12 @@
 /**
  * A complete, minimal OIDC provider. It serves, relative to the issuer:
  *
- * - GET  /.well-known/openid-configuration — the discovery document
- * - GET  /.well-known/jwks.json            — the signing keys
- * - GET  /oauth/authorize                  — validates the authorization request,
+ * - GET  /.well-known/openid-configuration - the discovery document
+ * - GET  /.well-known/jwks.json            - the signing keys
+ * - GET  /oauth/authorize                  - validates the authorization request,
  *                                            signs in a demo user, and redirects
  *                                            back with a single-use code
- * - POST /oauth/token                      — authorization_code (PKCE-checked)
+ * - POST /oauth/token                      - authorization_code (PKCE-checked)
  *                                            and refresh_token grants
  *
  * Everything lives in memory: one registered OAuth client, one user, and a
@@ -31,7 +31,7 @@ import { Jwt, Oidc } from "effect-oidc";
 // Provider configuration
 // ---------------------------------------------------------------------------
 
-/** Demo only — a real issuer MUST be https (clients enforce this). */
+/** Demo only - a real issuer MUST be https (clients enforce this). */
 const issuer = "http://localhost:3001";
 const port = 3001;
 
@@ -43,7 +43,7 @@ const apiAudience = "demo-api";
 
 /**
  * The one OAuth client this provider knows about. It is a public client
- * (native app / SPA shaped), so there is no client secret — PKCE is what
+ * (native app / SPA shaped), so there is no client secret - PKCE is what
  * binds the code to the client that started the flow.
  */
 const registeredClient = {
@@ -135,7 +135,7 @@ const handleAuthorize = Effect.fnUntraced(function* (
     const state = yield* ProviderState;
 
     // The client and its registered redirect uri MUST be validated before
-    // redirecting anywhere — sending a code to an unregistered redirect_uri
+    // redirecting anywhere - sending a code to an unregistered redirect_uri
     // would hand tokens to whoever chose the URL.
     if (
         request.client_id !== registeredClient.clientId ||

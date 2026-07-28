@@ -7,7 +7,7 @@
  * AES key wrap, AES-GCM key wrap, ECDH-ES (direct and key-wrap), and PBES2
  * key management families.
  *
- * `RSA1_5` key management is intentionally unsupported — the Web Crypto API
+ * `RSA1_5` key management is intentionally unsupported - the Web Crypto API
  * does not implement RSAES-PKCS1-v1_5 encryption and RFC 8725 discourages it.
  *
  * Security note: AES-GCM (content encryption and `A*GCMKW` key wrapping) uses
@@ -770,7 +770,7 @@ export const decrypt = Effect.fnUntraced(function* (options: {
     const cek = yield* keyManagementDecrypt(header, options.key, encryptedKey, params.cekBytes, {
         maxPBES2Count: options.maxPBES2Count ?? defaultMaxPBES2Count,
     });
-    // A key-management algorithm can yield a CEK of the wrong size — e.g. an
+    // A key-management algorithm can yield a CEK of the wrong size - e.g. an
     // attacker RSA-OAEP-encrypts an arbitrary-length key to the recipient's
     // public key. Reject it before it reaches AES importKey in contentDecrypt,
     // which would otherwise reject and surface as an unhandled defect.
