@@ -2,7 +2,7 @@
     "$schema": "https://json.schemastore.org/tsconfig",
     "extends": "./tsconfig.base.json",
     "references": [{ "path": "tsconfig.build.json" }],
-    "include": ["**/vitest.*.ts", "./test/**/*.ts"],
+    "include": ["**/vitest.*.ts", "./test/**/*.ts", "./examples/**/*.ts"],
     "compilerOptions": {
         "rootDir": ".",
         "noEmit": true,

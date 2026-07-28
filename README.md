@@ -27,6 +27,16 @@ I wanted "Sign in with Tinyburg" and OAuth apps that could gain user consent for
 - the "none" JWS algorithm
 - implicit and hybrid flows, this library is OAuth 2.1 shaped (authorization code + PKCE only)
 
+## Examples :rocket:
+
+Full runnable programs live in [examples/](./examples/) — a complete in-memory OIDC provider, a resource server protected by the bearer middleware, a client driving the whole authorization code + PKCE flow against them, plus smaller JWT and JWS walkthroughs. To watch the entire flow run locally:
+
+```sh
+pnpm tsx examples/02-oidc-provider.ts    # terminal 1: the provider
+pnpm tsx examples/03-resource-server.ts  # terminal 2: the protected API
+pnpm tsx examples/04-oidc-client.ts      # terminal 3: the client, driving the flow
+```
+
 ## Library docs :card_file_box:
 
 [https://leoconforti.pages.ltgk.net/effect-oidc/](https://leoconforti.pages.ltgk.net/effect-oidc/)

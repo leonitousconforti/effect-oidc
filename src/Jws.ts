@@ -678,6 +678,12 @@ export function sign<
     const encodeProtected = Schema.encodeEffect(protectedHeaderSchema);
     const encodeSignature = Schema.encodeEffect(Schema.Uint8ArrayFromBase64Url);
 
+    // The `crit` member must list every registered critical header key
+    // (RFC 7515 Section 4.1.11) and the extended header schema requires
+    // exactly that, so it is populated here rather than by callers —
+    // `ProtectedHeaderExtras` deliberately excludes `crit`.
+    const criticalKeys = Object.keys(options.criticalHeaders ?? {});
+
     const signMany = (
         encodedPayload: string,
         criticalHeaders: Schema.Struct.Type<CriticalHeaders>,
@@ -694,6 +700,7 @@ export function sign<
                     alg: algorithm as any,
                     ...header,
                     ...criticalHeaders,
+                    ...(criticalKeys.length === 0 ? {} : { crit: criticalKeys }),
                 } as any);
                 const signature = yield* Effect.promise(() =>
                     crypto.subtle.sign(
