@@ -133,8 +133,8 @@ export const AccessTokenClaimsSchema = Schema.Struct({
  * @see https://www.rfc-editor.org/rfc/rfc7009 - OAuth 2.0 Token Revocation
  */
 export const RevocationRequestSchema = Schema.Struct({
-    token: Schema.String,
     token_type_hint: Schema.String.pipe(Schema.optional),
+    token: Schema.String,
 });
 
 /**
