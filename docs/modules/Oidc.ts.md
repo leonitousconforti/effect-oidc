@@ -15,7 +15,12 @@ The provider serves, by convention relative to the issuer:
 - `/.well-known/openid-configuration` - `DiscoveryDocumentSchema`
 - `/.well-known/jwks.json` - `Jwt.JwksSchema`
 - `/oauth/authorize` - browser page decoding `AuthorizationRequestSchema`
-- `/oauth/token` - decoding `TokenRequestSchema`, answering `TokenResponseSchema`
+- `/oauth/token` - decoding `TokenRequestSchema` (authorization_code
+  with PKCE, refresh_token, and client_credentials grants; confidential
+  clients authenticate via `clientAuthentication`), answering
+  `TokenResponseSchema`
+- `/oauth/revoke` - decoding `RevocationRequestSchema` (RFC 7009),
+  adding the token's `jti` to a denylist until the token's `exp`
 
 Since v1.0.0
 
@@ -26,13 +31,16 @@ Since v1.0.0
 - [Client](#client)
   - [authorizationUrl](#authorizationurl)
   - [exchangeAuthorizationCode](#exchangeauthorizationcode)
+  - [exchangeClientCredentials](#exchangeclientcredentials)
   - [fetchDiscovery](#fetchdiscovery)
   - [fetchJwks](#fetchjwks)
   - [generatePkce](#generatepkce)
+  - [revokeToken](#revoketoken)
   - [verifyIdToken](#verifyidtoken)
 - [Errors](#errors)
   - [DiscoveryError (class)](#discoveryerror-class)
 - [Provider](#provider)
+  - [clientAuthentication](#clientauthentication)
   - [issueAccessToken](#issueaccesstoken)
   - [issueIdToken](#issueidtoken)
   - [makeDiscoveryDocument](#makediscoverydocument)
@@ -41,6 +49,7 @@ Since v1.0.0
   - [AuthorizationRequestSchema](#authorizationrequestschema)
   - [DiscoveryDocumentSchema](#discoverydocumentschema)
   - [IdTokenClaimsSchema](#idtokenclaimsschema)
+  - [RevocationRequestSchema](#revocationrequestschema)
   - [TokenRequestSchema](#tokenrequestschema)
   - [TokenResponseSchema](#tokenresponseschema)
 
@@ -66,7 +75,7 @@ declare const authorizationUrl: (options: {
 }) => string
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L278)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L362)
 
 Since v1.0.0
 
@@ -99,7 +108,40 @@ declare const exchangeAuthorizationCode: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L306)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L390)
+
+Since v1.0.0
+
+## exchangeClientCredentials
+
+Obtains an access token with the client credentials grant - the machine
+to machine flow for confidential clients, with no user involved. The
+client authenticates with `client_secret_basic` (the OIDC default
+method).
+
+**Signature**
+
+```ts
+declare const exchangeClientCredentials: (options: {
+  readonly tokenEndpoint: string
+  readonly clientId: string
+  readonly clientSecret: string
+  readonly scopes?: ReadonlyArray<string> | undefined
+}) => Effect.Effect<
+  {
+    readonly scope: string
+    readonly token_type: "Bearer"
+    readonly access_token: string
+    readonly expires_in: number
+    readonly refresh_token?: string | undefined
+    readonly id_token?: string | undefined
+  },
+  Schema.SchemaError | HttpClientError,
+  HttpClient.HttpClient
+>
+```
+
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L422)
 
 Since v1.0.0
 
@@ -125,13 +167,15 @@ declare const fetchDiscovery: (
     readonly token_endpoint: string
     readonly jwks_uri: string
     readonly userinfo_endpoint?: string | undefined
+    readonly token_endpoint_auth_methods_supported?: ReadonlyArray<string> | undefined
+    readonly revocation_endpoint?: string | undefined
   },
   Schema.SchemaError | DiscoveryError | HttpClientError,
   HttpClient.HttpClient
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L234)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L318)
 
 Since v1.0.0
 
@@ -345,7 +389,7 @@ declare const fetchJwks: (
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L266)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L350)
 
 Since v1.0.0
 
@@ -359,7 +403,28 @@ Generates a PKCE verifier and its S256 challenge.
 declare const generatePkce: () => Effect.Effect<{ verifier: string; challenge: string; method: "S256" }, never, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L218)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L302)
+
+Since v1.0.0
+
+## revokeToken
+
+Revokes a token at the provider's RFC 7009 revocation endpoint.
+Confidential clients authenticate with `client_secret_basic`; public
+clients send only their `client_id`.
+
+**Signature**
+
+```ts
+declare const revokeToken: (options: {
+  readonly revocationEndpoint: string
+  readonly token: string
+  readonly clientId?: string | undefined
+  readonly clientSecret?: string | undefined
+}) => Effect.Effect<void, HttpClientError, HttpClient.HttpClient>
+```
+
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L453)
 
 Since v1.0.0
 
@@ -398,7 +463,7 @@ declare const verifyIdToken: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L338)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L484)
 
 Since v1.0.0
 
@@ -414,11 +479,40 @@ Raised when a fetched discovery document fails validation.
 declare class DiscoveryError
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L123)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L159)
 
 Since v1.0.0
 
 # Provider
+
+## clientAuthentication
+
+Resolves how a token request authenticates its client: the
+`Authorization: Basic` header (`client_secret_basic`, the OIDC default
+method) takes precedence over the `client_id`/`client_secret` body
+parameters (`client_secret_post`). Returns `Option.none` when the request
+names no client at all, or when a presented Basic header is malformed.
+
+For the provider's token endpoint: public clients resolve with an
+undefined secret, confidential clients must have their secret verified
+against the registration before the grant is honoured.
+
+**See**
+
+- https://www.rfc-editor.org/rfc/rfc6749#section-2.3.1
+
+**Signature**
+
+```ts
+declare const clientAuthentication: (options: {
+  readonly authorization?: string | undefined
+  readonly request: { readonly client_id?: string | undefined; readonly client_secret?: string | undefined }
+}) => Option.Option<{ readonly clientId: string; readonly clientSecret: string | undefined }>
+```
+
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L202)
+
+Since v1.0.0
 
 ## issueAccessToken
 
@@ -438,7 +532,7 @@ declare const issueAccessToken: (options: {
 }) => Effect.Effect<string, Schema.SchemaError, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L155)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L239)
 
 Since v1.0.0
 
@@ -461,7 +555,7 @@ declare const issueIdToken: (options: {
 }) => Effect.Effect<string, Schema.SchemaError, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L187)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L271)
 
 Since v1.0.0
 
@@ -476,7 +570,7 @@ endpoint paths.
 declare const makeDiscoveryDocument: (issuer: string) => Schema.Schema.Type<typeof DiscoveryDocumentSchema>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L135)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L171)
 
 Since v1.0.0
 
@@ -502,7 +596,7 @@ declare const AccessTokenClaimsSchema: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L98)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L119)
 
 Since v1.0.0
 
@@ -526,7 +620,7 @@ declare const AuthorizationRequestSchema: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L47)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L54)
 
 Since v1.0.0
 
@@ -547,10 +641,12 @@ declare const DiscoveryDocumentSchema: Schema.Struct<{
   readonly subject_types_supported: Schema.$Array<Schema.String>
   readonly id_token_signing_alg_values_supported: Schema.$Array<Schema.String>
   readonly code_challenge_methods_supported: Schema.$Array<Schema.String>
+  readonly token_endpoint_auth_methods_supported: Schema.optional<Schema.$Array<Schema.String>>
+  readonly revocation_endpoint: Schema.optional<Schema.String>
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L26)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L31)
 
 Since v1.0.0
 
@@ -574,11 +670,43 @@ declare const IdTokenClaimsSchema: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L108)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L144)
+
+Since v1.0.0
+
+## RevocationRequestSchema
+
+The form body of an RFC 7009 revocation request. The endpoint must answer
+`200` whether or not the presented token was valid, so callers cannot use
+it to probe token validity; on success the token's `jti` joins a denylist
+until the token's `exp`, which keeps the denylist bounded.
+
+**See**
+
+- https://www.rfc-editor.org/rfc/rfc7009 - OAuth 2.0 Token Revocation
+
+**Signature**
+
+```ts
+declare const RevocationRequestSchema: Schema.Struct<{
+  readonly token: Schema.String
+  readonly token_type_hint: Schema.optional<Schema.String>
+}>
+```
+
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L135)
 
 Since v1.0.0
 
 ## TokenRequestSchema
+
+The form body of a token request. Public clients (SPAs, native apps) use
+the `authorization_code` and `refresh_token` grants with PKCE and no
+secret; confidential clients additionally authenticate - via the
+`Authorization: Basic` header or the `client_secret` body parameter, see
+`clientAuthentication` - and may use the machine-to-machine
+`client_credentials` grant, where the credentials commonly arrive in the
+header and the body carries only the grant type and scope.
 
 **Signature**
 
@@ -598,12 +726,18 @@ declare const TokenRequestSchema: Schema.Union<
       readonly refresh_token: Schema.String
       readonly client_id: Schema.String
       readonly client_secret: Schema.optional<Schema.String>
+    }>,
+    Schema.Struct<{
+      readonly grant_type: Schema.Literal<"client_credentials">
+      readonly scope: Schema.optional<Schema.String>
+      readonly client_id: Schema.optional<Schema.String>
+      readonly client_secret: Schema.optional<Schema.String>
     }>
   ]
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L62)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L77)
 
 Since v1.0.0
 
@@ -622,6 +756,6 @@ declare const TokenResponseSchema: Schema.Struct<{
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L83)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L104)
 
 Since v1.0.0

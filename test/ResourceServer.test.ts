@@ -1,0 +1,257 @@
+import type { HttpApiError } from "effect/unstable/httpapi";
+
+import { Context, Effect, Layer, Redacted, Schema } from "effect";
+import { HttpClient, HttpClientResponse, HttpServerResponse } from "effect/unstable/http";
+import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi";
+
+import { expect, it } from "@effect/vitest";
+import { Jwt, Oidc, ResourceServer } from "effect-oidc";
+
+const issuer = "https://id.example.com";
+const audience = "demo-api";
+
+const listNotes = HttpApiEndpoint.get("listNotes", "/notes", { success: Schema.String });
+const createNote = HttpApiEndpoint.post("createNote", "/notes", { success: Schema.String });
+const notes = HttpApiGroup.make("notes").add(listNotes, createNote);
+
+/**
+ * Builds the `Authorization` implementation with a stub `HttpClient` serving
+ * the JWKS, plus helpers to mint tokens for it and to invoke the bearer
+ * security scheme exactly as the `HttpApi` builder would.
+ */
+const makeHarness = Effect.fnUntraced(function* (layerOptions?: {
+    readonly revoked?: (
+        claims: Schema.Schema.Type<typeof Oidc.AccessTokenClaimsSchema>
+    ) => Effect.Effect<boolean, unknown>;
+}) {
+    const { privateJwk, publicJwk } = yield* Jwt.generateSigningKey();
+
+    const StubJwksClient = Layer.succeed(
+        HttpClient.HttpClient,
+        HttpClient.make((request) =>
+            Effect.succeed(HttpClientResponse.fromWeb(request, Response.json({ keys: [publicJwk] })))
+        )
+    );
+
+    const context = yield* Layer.build(
+        ResourceServer.layer({ issuer, audience, ...layerOptions }).pipe(Layer.provide(StubJwksClient))
+    );
+    const authorization = Context.get(context, ResourceServer.Authorization);
+
+    const issueToken = (scope: string) =>
+        Oidc.issueAccessToken({
+            privateJwk,
+            issuer,
+            subject: "user-123",
+            audience,
+            clientId: "client-abc",
+            scope,
+            ttlSeconds: 300,
+        });
+
+    // Invokes the bearer security-scheme handler exactly as the `HttpApi`
+    // builder would, with the decoded credential (empty when absent). The
+    // middleware never touches the router-provided services, so the
+    // requirements the security signature carries can be discarded here.
+    const call = (token: string, endpoint: unknown, callOptions?: { readonly group?: unknown }) => {
+        let seen: (typeof ResourceServer.CurrentUser)["Service"] | undefined;
+        const next = Effect.gen(function* () {
+            seen = yield* ResourceServer.CurrentUser;
+            return HttpServerResponse.empty();
+        });
+        const handled = authorization.bearer(next, {
+            credential: Redacted.make(token),
+            endpoint: endpoint as never,
+            group: (callOptions?.group ?? notes) as never,
+        }) as unknown as Effect.Effect<
+            HttpServerResponse.HttpServerResponse,
+            HttpApiError.Unauthorized | HttpApiError.Forbidden | HttpApiError.InternalServerError
+        >;
+        return Effect.map(handled, () => seen as NonNullable<typeof seen>);
+    };
+
+    return { issueToken, call };
+});
+
+it.live("accepts the endpoint's derived scope by default", () =>
+    Effect.gen(function* () {
+        const harness = yield* makeHarness();
+
+        const readOnly = yield* harness.issueToken("notes:listNotes");
+        const user = yield* harness.call(readOnly, listNotes);
+        expect(user.sub).toBe("user-123");
+        expect(user.scopes).toStrictEqual(new Set(["notes:listNotes"]));
+
+        const forbidden = yield* Effect.flip(harness.call(readOnly, createNote));
+        expect(forbidden._tag).toBe("Forbidden");
+
+        const readWrite = yield* harness.issueToken("notes:listNotes notes:createNote");
+        const writer = yield* harness.call(readWrite, createNote);
+        expect(writer.scopes.has("notes:createNote")).toBe(true);
+    }).pipe(Effect.scoped)
+);
+
+it.live("accepts the group scope for every endpoint in the group", () =>
+    Effect.gen(function* () {
+        const harness = yield* makeHarness();
+
+        const groupToken = yield* harness.issueToken("notes");
+        const reader = yield* harness.call(groupToken, listNotes);
+        const writer = yield* harness.call(groupToken, createNote);
+        expect(reader.sub).toBe("user-123");
+        expect(writer.scopes).toStrictEqual(new Set(["notes"]));
+
+        // A scope for another group grants nothing here.
+        const other = yield* harness.issueToken("payments");
+        const forbidden = yield* Effect.flip(harness.call(other, listNotes));
+        expect(forbidden._tag).toBe("Forbidden");
+    }).pipe(Effect.scoped)
+);
+
+it.live("the Scopes annotation on an endpoint replaces the derived default", () =>
+    Effect.gen(function* () {
+        const purgeNotes = HttpApiEndpoint.delete("purgeNotes", "/notes").annotate(ResourceServer.OIDCScopes, [
+            "admin",
+        ]);
+        const group = HttpApiGroup.make("notes").add(purgeNotes);
+        const harness = yield* makeHarness();
+
+        const admin = yield* harness.issueToken("admin");
+        const user = yield* harness.call(admin, purgeNotes, { group });
+        expect(user.scopes).toStrictEqual(new Set(["admin"]));
+
+        // The derived endpoint and group scopes are no longer accepted.
+        const derived = yield* harness.issueToken("notes:purgeNotes notes");
+        const forbidden = yield* Effect.flip(harness.call(derived, purgeNotes, { group }));
+        expect(forbidden._tag).toBe("Forbidden");
+    }).pipe(Effect.scoped)
+);
+
+it.live("an empty Scopes annotation requires no scopes, only a valid token", () =>
+    Effect.gen(function* () {
+        const whoami = HttpApiEndpoint.get("whoami", "/whoami").annotate(ResourceServer.OIDCScopes, []);
+        const group = HttpApiGroup.make("notes").add(whoami);
+        const harness = yield* makeHarness();
+
+        const bare = yield* harness.issueToken("openid");
+        const user = yield* harness.call(bare, whoami, { group });
+        expect(user.sub).toBe("user-123");
+    }).pipe(Effect.scoped)
+);
+
+it.live("a Scopes annotation on the group applies to endpoints without their own", () =>
+    Effect.gen(function* () {
+        const purgeNotes = HttpApiEndpoint.delete("purgeNotes", "/notes").annotate(ResourceServer.OIDCScopes, [
+            "admin",
+        ]);
+        const group = HttpApiGroup.make("notes")
+            .add(listNotes, purgeNotes)
+            .annotate(ResourceServer.OIDCScopes, ["notes:all"]);
+        const harness = yield* makeHarness();
+
+        // listNotes has no annotation of its own: the group annotation wins
+        // over the derived default...
+        const all = yield* harness.issueToken("notes:all");
+        const user = yield* harness.call(all, listNotes, { group });
+        expect(user.scopes).toStrictEqual(new Set(["notes:all"]));
+
+        const derived = yield* harness.issueToken("notes:listNotes notes");
+        const forbidden = yield* Effect.flip(harness.call(derived, listNotes, { group }));
+        expect(forbidden._tag).toBe("Forbidden");
+
+        // ...while purgeNotes' own annotation wins over the group's.
+        const admin = yield* harness.issueToken("admin");
+        const purger = yield* harness.call(admin, purgeNotes, { group });
+        expect(purger.scopes).toStrictEqual(new Set(["admin"]));
+
+        const groupOnly = yield* Effect.flip(harness.call(all, purgeNotes, { group }));
+        expect(groupOnly._tag).toBe("Forbidden");
+    }).pipe(Effect.scoped)
+);
+
+it.live("still rejects invalid tokens before any scope check", () =>
+    Effect.gen(function* () {
+        const harness = yield* makeHarness();
+
+        const unauthorized = yield* Effect.flip(harness.call("not-a-jwt", listNotes));
+        expect(unauthorized._tag).toBe("Unauthorized");
+    }).pipe(Effect.scoped)
+);
+
+it.live("rejects requests without any bearer credential", () =>
+    Effect.gen(function* () {
+        const harness = yield* makeHarness();
+
+        const unauthorized = yield* Effect.flip(harness.call("", listNotes));
+        expect(unauthorized._tag).toBe("Unauthorized");
+    }).pipe(Effect.scoped)
+);
+
+it.live("consults the revoked predicate after verification", () =>
+    Effect.gen(function* () {
+        let revoked = false;
+        let consulted = 0;
+        const harness = yield* makeHarness({
+            revoked: (claims) => {
+                consulted += 1;
+                expect(typeof claims.jti).toBe("string");
+                return Effect.succeed(revoked);
+            },
+        });
+
+        const token = yield* harness.issueToken("notes");
+        const user = yield* harness.call(token, listNotes);
+        expect(user.sub).toBe("user-123");
+        expect(consulted).toBe(1);
+
+        revoked = true;
+        const unauthorized = yield* Effect.flip(harness.call(token, listNotes));
+        expect(unauthorized._tag).toBe("Unauthorized");
+
+        // Invalid tokens never reach the predicate.
+        yield* Effect.flip(harness.call("not-a-jwt", listNotes));
+        expect(consulted).toBe(2);
+    }).pipe(Effect.scoped)
+);
+
+it.live("answers 500 when the revocation check itself fails", () =>
+    Effect.gen(function* () {
+        const harness = yield* makeHarness({ revoked: () => Effect.fail("denylist unreachable") });
+
+        const token = yield* harness.issueToken("notes");
+        const failure = yield* Effect.flip(harness.call(token, listNotes));
+        expect(failure._tag).toBe("InternalServerError");
+    }).pipe(Effect.scoped)
+);
+
+it.live("requireScopes guards individual handlers against the granted scopes", () =>
+    Effect.gen(function* () {
+        const claims = yield* Schema.decodeUnknownEffect(Oidc.AccessTokenClaimsSchema)({
+            iss: issuer,
+            sub: "user-123",
+            aud: audience,
+            exp: 4102444800,
+            iat: 0,
+            scope: "notes:listNotes",
+            client_id: "client-abc",
+        });
+        const user = {
+            sub: claims.sub,
+            scopes: new Set(claims.scope.split(" ")),
+            clientId: claims.client_id,
+            claims,
+        };
+
+        const granted = yield* ResourceServer.requireScopes("notes:listNotes").pipe(
+            Effect.provideService(ResourceServer.CurrentUser, user)
+        );
+        expect(granted.sub).toBe("user-123");
+
+        const forbidden = yield* Effect.flip(
+            ResourceServer.requireScopes("notes:listNotes", "notes:createNote").pipe(
+                Effect.provideService(ResourceServer.CurrentUser, user)
+            )
+        );
+        expect(forbidden._tag).toBe("Forbidden");
+    })
+);

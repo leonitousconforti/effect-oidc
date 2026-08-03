@@ -58,7 +58,11 @@ const program = Effect.gen(function* () {
         authorizationEndpoint: discovery.authorization_endpoint,
         clientId,
         redirectUri,
-        scopes: ["openid", "profile", "notes:read", "notes:write"],
+        // The resource server derives its scopes from its api definition
+        // (see 03-resource-server.ts): the group scope "notes" grants every
+        // endpoint in the group; request "<group>:<endpoint>" names instead
+        // (e.g. "notes:listNotes") for access to specific endpoints only.
+        scopes: ["openid", "profile", "notes"],
         state,
         codeChallenge: pkce.challenge,
         nonce,
@@ -145,6 +149,52 @@ const program = Effect.gen(function* () {
         refreshResponse
     )).body;
     yield* Console.log("7. refreshed:", { ...refreshed, access_token: "<jwt>", id_token: "<jwt>" });
+
+    // 8. Machine-to-machine: a confidential ("private") client skips the
+    //    browser entirely - it authenticates to the token endpoint with its
+    //    secret and receives an access token whose subject is the client
+    //    itself (see the registration in 02-oidc-provider.ts).
+    const m2m = yield* Oidc.exchangeClientCredentials({
+        tokenEndpoint: discovery.token_endpoint,
+        clientId: "demo-service",
+        clientSecret: "demo-service-secret",
+        scopes: ["notes"],
+    });
+    const asService = yield* HttpClientRequest.get(new URL("/whoami", resourceServer)).pipe(
+        HttpClientRequest.bearerToken(m2m.access_token),
+        HttpClient.execute
+    );
+    yield* Console.log("8. GET /whoami as the confidential service ->", yield* asService.json);
+
+    // 9. Api keys are ordinary JWTs, just with a long ttl, verified exactly
+    //    like access tokens. The demo provider mints one here; a real
+    //    provider does this from an authenticated dashboard.
+    const minted = yield* HttpClient.post(new URL("/demo/api-key", issuer));
+    const { api_key } = (yield* HttpClientResponse.schemaJson(
+        Schema.Struct({ body: Schema.Struct({ api_key: Schema.String }) })
+    )(minted)).body;
+
+    const viaApiKey = yield* HttpClientRequest.get(new URL("/whoami", resourceServer)).pipe(
+        HttpClientRequest.bearerToken(api_key),
+        HttpClient.execute
+    );
+    yield* Console.log("9. GET /whoami with the api key ->", yield* viaApiKey.json);
+
+    // 10. Revocation (RFC 7009): the key's jti joins the provider's
+    //     denylist. The resource server polls that denylist on a short
+    //     cache, so the key dies within seconds - the price of stateless
+    //     verification is that revocation is eventual, not instant.
+    yield* Oidc.revokeToken({
+        revocationEndpoint: discovery.revocation_endpoint ?? new URL("/oauth/revoke", issuer).toString(),
+        token: api_key,
+    });
+    yield* Effect.sleep("4 seconds");
+
+    const afterRevoke = yield* HttpClientRequest.get(new URL("/whoami", resourceServer)).pipe(
+        HttpClientRequest.bearerToken(api_key),
+        HttpClient.execute
+    );
+    yield* Console.log("10. GET /whoami after revoking the api key ->", afterRevoke.status);
 });
 
 NodeRuntime.runMain(program.pipe(Effect.provide(NodeHttpClient.layerUndici)));

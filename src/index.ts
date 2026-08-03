@@ -114,7 +114,12 @@ export * as Jwt from "./Jwt.ts"
  * - `/.well-known/openid-configuration` - {@link DiscoveryDocumentSchema}
  * - `/.well-known/jwks.json` - `Jwt.JwksSchema`
  * - `/oauth/authorize` - browser page decoding {@link AuthorizationRequestSchema}
- * - `/oauth/token` - decoding {@link TokenRequestSchema}, answering {@link TokenResponseSchema}
+ * - `/oauth/token` - decoding {@link TokenRequestSchema} (authorization_code
+ *   with PKCE, refresh_token, and client_credentials grants; confidential
+ *   clients authenticate via {@link clientAuthentication}), answering
+ *   {@link TokenResponseSchema}
+ * - `/oauth/revoke` - decoding {@link RevocationRequestSchema} (RFC 7009),
+ *   adding the token's `jti` to a denylist until the token's `exp`
  *
  * @since 1.0.0
  * @category Oidc
@@ -144,10 +149,29 @@ export * as Oidc from "./Oidc.ts"
  * })
  * ```
  *
- * Tokens are verified statelessly: the issuer's JWKS is fetched once and
- * cached, so no shared database or network hop is needed per request.
- * Handlers read the caller from {@link CurrentUser} and can guard individual
- * endpoints with {@link requireScopes}.
+ * Every credential arrives as `Authorization: Bearer <jwt>` - there is no
+ * cookie transport and no opaque credential. Interactive access tokens
+ * (from public SPAs and confidential clients alike) and long-lived api keys
+ * are all just JWTs minted by the issuer - an api key is nothing more than
+ * a token with a long expiry - and verified statelessly: the issuer's JWKS
+ * is fetched once and cached, so no shared database or network hop is
+ * needed per request.
+ *
+ * Revocation is the one optional piece of state: give {@link layer} a
+ * `revoked` predicate backed by the issuer's RFC 7009 denylist (see
+ * `Oidc.RevocationRequestSchema`) and cache it as aggressively as your
+ * revocation latency allows - without it, tokens are simply valid until
+ * they expire.
+ *
+ * Handlers read the caller from {@link CurrentUser} - the account (`sub`),
+ * its scopes, the OAuth client acting on its behalf, and the verified
+ * claims - and can guard individual endpoints with {@link requireScopes}.
+ *
+ * Scopes are enforced per endpoint without inventing names: by default an
+ * endpoint accepts its derived scope (`"MyGroup:MyEndpoint"`) or the bare
+ * group identifier (`"MyGroup"`), which grants every endpoint in the group.
+ * Annotating an endpoint (or group) with {@link OIDCScopes} replaces that
+ * default with an explicit list of accepted scopes - empty to require none.
  *
  * @since 1.0.0
  * @category ResourceServer

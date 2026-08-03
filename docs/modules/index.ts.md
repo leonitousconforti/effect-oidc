@@ -77,7 +77,7 @@ Re-exports all named exports from the "./Oidc.ts" module as `Oidc`.
 export * as Oidc from "./Oidc.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L122)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L127)
 
 Since v1.0.0
 
@@ -93,7 +93,7 @@ Re-exports all named exports from the "./ResourceServer.ts" module as `ResourceS
 export * as ResourceServer from "./ResourceServer.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L155)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L179)
 
 Since v1.0.0
 

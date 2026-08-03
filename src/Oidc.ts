@@ -8,13 +8,18 @@
  * - `/.well-known/openid-configuration` - {@link DiscoveryDocumentSchema}
  * - `/.well-known/jwks.json` - `Jwt.JwksSchema`
  * - `/oauth/authorize` - browser page decoding {@link AuthorizationRequestSchema}
- * - `/oauth/token` - decoding {@link TokenRequestSchema}, answering {@link TokenResponseSchema}
+ * - `/oauth/token` - decoding {@link TokenRequestSchema} (authorization_code
+ *   with PKCE, refresh_token, and client_credentials grants; confidential
+ *   clients authenticate via {@link clientAuthentication}), answering
+ *   {@link TokenResponseSchema}
+ * - `/oauth/revoke` - decoding {@link RevocationRequestSchema} (RFC 7009),
+ *   adding the token's `jti` to a denylist until the token's `exp`
  *
  * @since 1.0.0
  * @category Oidc
  */
 
-import { DateTime, Effect, Encoding, Schema } from "effect";
+import { DateTime, Effect, Encoding, Option, Result, Schema } from "effect";
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http";
 
 import * as Jwt from "./Jwt.ts";
@@ -35,6 +40,8 @@ export const DiscoveryDocumentSchema = Schema.Struct({
     subject_types_supported: Schema.Array(Schema.String),
     id_token_signing_alg_values_supported: Schema.Array(Schema.String),
     code_challenge_methods_supported: Schema.Array(Schema.String),
+    token_endpoint_auth_methods_supported: Schema.Array(Schema.String).pipe(Schema.optional),
+    revocation_endpoint: Schema.String.pipe(Schema.optional),
 });
 
 /**
@@ -56,6 +63,14 @@ export const AuthorizationRequestSchema = Schema.Struct({
 });
 
 /**
+ * The form body of a token request. Public clients (SPAs, native apps) use
+ * the `authorization_code` and `refresh_token` grants with PKCE and no
+ * secret; confidential clients additionally authenticate - via the
+ * `Authorization: Basic` header or the `client_secret` body parameter, see
+ * {@link clientAuthentication} - and may use the machine-to-machine
+ * `client_credentials` grant, where the credentials commonly arrive in the
+ * header and the body carries only the grant type and scope.
+ *
  * @since 1.0.0
  * @category Schema
  */
@@ -72,6 +87,12 @@ export const TokenRequestSchema = Schema.Union([
         grant_type: Schema.Literal("refresh_token"),
         refresh_token: Schema.String,
         client_id: Schema.String,
+        client_secret: Schema.String.pipe(Schema.optional),
+    }),
+    Schema.Struct({
+        grant_type: Schema.Literal("client_credentials"),
+        scope: Schema.String.pipe(Schema.optional),
+        client_id: Schema.String.pipe(Schema.optional),
         client_secret: Schema.String.pipe(Schema.optional),
     }),
 ]);
@@ -99,6 +120,21 @@ export const AccessTokenClaimsSchema = Schema.Struct({
     ...Jwt.RegisteredClaimsSchema.fields,
     scope: Schema.String,
     client_id: Schema.String,
+});
+
+/**
+ * The form body of an RFC 7009 revocation request. The endpoint must answer
+ * `200` whether or not the presented token was valid, so callers cannot use
+ * it to probe token validity; on success the token's `jti` joins a denylist
+ * until the token's `exp`, which keeps the denylist bounded.
+ *
+ * @since 1.0.0
+ * @category Schema
+ * @see https://www.rfc-editor.org/rfc/rfc7009 - OAuth 2.0 Token Revocation
+ */
+export const RevocationRequestSchema = Schema.Struct({
+    token: Schema.String,
+    token_type_hint: Schema.String.pipe(Schema.optional),
 });
 
 /**
@@ -139,12 +175,60 @@ export const makeDiscoveryDocument = (issuer: string): Schema.Schema.Type<typeof
     jwks_uri: new URL("/.well-known/jwks.json", issuer).toString(),
     userinfo_endpoint: new URL("/oauth/userinfo", issuer).toString(),
     response_types_supported: ["code"],
-    grant_types_supported: ["authorization_code", "refresh_token"],
+    grant_types_supported: ["authorization_code", "refresh_token", "client_credentials"],
     scopes_supported: ["openid", "profile"],
     subject_types_supported: ["public"],
     id_token_signing_alg_values_supported: ["ES256"],
     code_challenge_methods_supported: ["S256"],
+    token_endpoint_auth_methods_supported: ["none", "client_secret_basic", "client_secret_post"],
+    revocation_endpoint: new URL("/oauth/revoke", issuer).toString(),
 });
+
+/**
+ * Resolves how a token request authenticates its client: the
+ * `Authorization: Basic` header (`client_secret_basic`, the OIDC default
+ * method) takes precedence over the `client_id`/`client_secret` body
+ * parameters (`client_secret_post`). Returns `Option.none` when the request
+ * names no client at all, or when a presented Basic header is malformed.
+ *
+ * For the provider's token endpoint: public clients resolve with an
+ * undefined secret, confidential clients must have their secret verified
+ * against the registration before the grant is honoured.
+ *
+ * @since 1.0.0
+ * @category Provider
+ * @see https://www.rfc-editor.org/rfc/rfc6749#section-2.3.1
+ */
+export const clientAuthentication = (options: {
+    /** The raw `Authorization` request header, if one was sent. */
+    readonly authorization?: string | undefined;
+    /** The decoded token request body. */
+    readonly request: {
+        readonly client_id?: string | undefined;
+        readonly client_secret?: string | undefined;
+    };
+}): Option.Option<{ readonly clientId: string; readonly clientSecret: string | undefined }> => {
+    const header = options.authorization;
+    if (typeof header === "string" && header.slice(0, 6).toLowerCase() === "basic ") {
+        const decoded = Result.getOrUndefined(Encoding.decodeBase64String(header.slice(6).trim()));
+        const separator = decoded === undefined ? -1 : decoded.indexOf(":");
+        if (decoded === undefined || separator === -1) return Option.none();
+        // RFC 6749 Section 2.3.1: both values are form-urlencoded before
+        // being joined and base64 encoded.
+        try {
+            return Option.some({
+                clientId: decodeURIComponent(decoded.slice(0, separator)),
+                clientSecret: decodeURIComponent(decoded.slice(separator + 1)),
+            });
+        } catch {
+            return Option.none();
+        }
+    }
+    if (options.request.client_id !== undefined) {
+        return Option.some({ clientId: options.request.client_id, clientSecret: options.request.client_secret });
+    }
+    return Option.none();
+};
 
 /**
  * Issues an access token JWT. Used by the provider's token endpoint.
@@ -324,6 +408,68 @@ export const exchangeAuthorizationCode = Effect.fnUntraced(function* (options: {
     const response = yield* HttpClient.execute(request);
     const decoded = yield* HttpClientResponse.schemaJson(Schema.Struct({ body: TokenResponseSchema }))(response);
     return decoded.body;
+});
+
+/**
+ * Obtains an access token with the client credentials grant - the machine
+ * to machine flow for confidential clients, with no user involved. The
+ * client authenticates with `client_secret_basic` (the OIDC default
+ * method).
+ *
+ * @since 1.0.0
+ * @category Client
+ */
+export const exchangeClientCredentials = Effect.fnUntraced(function* (options: {
+    readonly tokenEndpoint: string;
+    readonly clientId: string;
+    readonly clientSecret: string;
+    readonly scopes?: ReadonlyArray<string> | undefined;
+}) {
+    // RFC 6749 Section 2.3.1: form-urlencode the id and secret before
+    // joining them for the Basic header.
+    const basic = Encoding.encodeBase64(
+        `${encodeURIComponent(options.clientId)}:${encodeURIComponent(options.clientSecret)}`
+    );
+    const request = HttpClientRequest.post(options.tokenEndpoint).pipe(
+        HttpClientRequest.setHeader("authorization", `Basic ${basic}`),
+        HttpClientRequest.bodyUrlParams({
+            grant_type: "client_credentials",
+            ...(options.scopes === undefined ? {} : { scope: options.scopes.join(" ") }),
+        })
+    );
+    const response = yield* HttpClient.execute(request);
+    const decoded = yield* HttpClientResponse.schemaJson(Schema.Struct({ body: TokenResponseSchema }))(response);
+    return decoded.body;
+});
+
+/**
+ * Revokes a token at the provider's RFC 7009 revocation endpoint.
+ * Confidential clients authenticate with `client_secret_basic`; public
+ * clients send only their `client_id`.
+ *
+ * @since 1.0.0
+ * @category Client
+ */
+export const revokeToken = Effect.fnUntraced(function* (options: {
+    readonly revocationEndpoint: string;
+    readonly token: string;
+    readonly clientId?: string | undefined;
+    readonly clientSecret?: string | undefined;
+}) {
+    const basic =
+        options.clientId === undefined || options.clientSecret === undefined
+            ? undefined
+            : Encoding.encodeBase64(
+                  `${encodeURIComponent(options.clientId)}:${encodeURIComponent(options.clientSecret)}`
+              );
+    const request = HttpClientRequest.post(options.revocationEndpoint).pipe(
+        basic === undefined ? (self) => self : HttpClientRequest.setHeader("authorization", `Basic ${basic}`),
+        HttpClientRequest.bodyUrlParams({
+            token: options.token,
+            ...(basic === undefined && options.clientId !== undefined ? { client_id: options.clientId } : {}),
+        })
+    );
+    yield* HttpClient.execute(request);
 });
 
 /**

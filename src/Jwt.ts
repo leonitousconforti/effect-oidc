@@ -163,6 +163,7 @@ export const sign = Effect.fnUntraced(function* (options: {
     );
 
     const signer = Jws.sign({
+        payload: PayloadFromJson,
         privateKeys: [
             {
                 algorithm,
@@ -173,7 +174,6 @@ export const sign = Effect.fnUntraced(function* (options: {
                 },
             },
         ],
-        payload: PayloadFromJson,
     });
 
     const flattened = yield* signer(options.payload, {});
