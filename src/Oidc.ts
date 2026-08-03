@@ -369,28 +369,26 @@ export const fetchJwks = (jwksUri: string) =>
  * @since 1.0.0
  * @category Client
  */
-export const authorizationUrl =
-    (options: {
-        readonly authorizationEndpoint: string;
-        readonly clientId: string;
-        readonly redirectUri: string;
-        readonly scopes: ReadonlyArray<string>;
-        readonly state: string;
-        readonly codeChallenge: string;
-        readonly nonce?: string | undefined;
-    }) =>
-    (self: HttpClientRequest.HttpClientRequest): HttpClientRequest.HttpClientRequest =>
-        self.pipe(
-            HttpClientRequest.setUrl(options.authorizationEndpoint),
-            HttpClientRequest.setUrlParam("response_type", "code"),
-            HttpClientRequest.setUrlParam("client_id", options.clientId),
-            HttpClientRequest.setUrlParam("redirect_uri", options.redirectUri),
-            HttpClientRequest.setUrlParam("scope", options.scopes.join(" ")),
-            HttpClientRequest.setUrlParam("state", options.state),
-            HttpClientRequest.setUrlParam("code_challenge", options.codeChallenge),
-            HttpClientRequest.setUrlParam("code_challenge_method", "S256"),
-            options.nonce === undefined ? (self) => self : HttpClientRequest.setUrlParam("nonce", options.nonce)
-        );
+export const authorizationRequest = (options: {
+    readonly authorizationEndpoint: string;
+    readonly clientId: string;
+    readonly redirectUri: string;
+    readonly scopes: ReadonlyArray<string>;
+    readonly state: string;
+    readonly codeChallenge: string;
+    readonly nonce?: string | undefined;
+}) =>
+    HttpClientRequest.empty.pipe(
+        HttpClientRequest.setUrl(options.authorizationEndpoint),
+        HttpClientRequest.setUrlParam("response_type", "code"),
+        HttpClientRequest.setUrlParam("client_id", options.clientId),
+        HttpClientRequest.setUrlParam("redirect_uri", options.redirectUri),
+        HttpClientRequest.setUrlParam("scope", options.scopes.join(" ")),
+        HttpClientRequest.setUrlParam("state", options.state),
+        HttpClientRequest.setUrlParam("code_challenge", options.codeChallenge),
+        HttpClientRequest.setUrlParam("code_challenge_method", "S256"),
+        options.nonce === undefined ? (self) => self : HttpClientRequest.setUrlParam("nonce", options.nonce)
+    );
 
 /**
  * Exchanges an authorization code for tokens at the provider's token

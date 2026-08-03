@@ -54,7 +54,7 @@ const program = Effect.gen(function* () {
     const state = crypto.randomUUID();
     const nonce = crypto.randomUUID();
 
-    const authorizationUrl = Oidc.authorizationUrl({
+    const authorizationRequest = Oidc.authorizationRequest({
         authorizationEndpoint: discovery.authorization_endpoint,
         clientId,
         redirectUri,
@@ -67,13 +67,12 @@ const program = Effect.gen(function* () {
         codeChallenge: pkce.challenge,
         nonce,
     });
-    yield* Console.log("2. authorization url:", authorizationUrl);
 
     // 3. A real app opens that URL in the browser; the user logs in and
     //    consents, and the provider redirects back to `redirectUri` with
     //    `code` and `state`. The demo provider auto-approves, so one request
     //    yields that redirect immediately.
-    const authorizeResponse = yield* HttpClient.get(authorizationUrl);
+    const authorizeResponse = yield* HttpClient.execute(authorizationRequest);
     const location = authorizeResponse.headers.location;
     if (authorizeResponse.status !== 302 || location === undefined) {
         return yield* new FlowError({ message: `expected a redirect, got ${authorizeResponse.status}` });

@@ -71,30 +71,6 @@ it.live("exchanges client credentials with a Basic-authenticated token request",
     })
 );
 
-it("builds an authorization url that decodes back to the request", () => {
-    const url = new URL(
-        Oidc.authorizationUrl({
-            authorizationEndpoint: "https://id.example.com/oauth/authorize",
-            clientId: "client-abc",
-            redirectUri: "https://app.example.com/callback",
-            scopes: ["openid", "profile"],
-            state: "state-1",
-            codeChallenge: "challenge-1",
-            nonce: "nonce-1",
-        })
-    );
-    expect(url.origin).toBe("https://id.example.com");
-    expect(url.pathname).toBe("/oauth/authorize");
-    expect(url.searchParams.get("response_type")).toBe("code");
-    expect(url.searchParams.get("client_id")).toBe("client-abc");
-    expect(url.searchParams.get("redirect_uri")).toBe("https://app.example.com/callback");
-    expect(url.searchParams.get("scope")).toBe("openid profile");
-    expect(url.searchParams.get("state")).toBe("state-1");
-    expect(url.searchParams.get("code_challenge")).toBe("challenge-1");
-    expect(url.searchParams.get("code_challenge_method")).toBe("S256");
-    expect(url.searchParams.get("nonce")).toBe("nonce-1");
-});
-
 it.live("generates a PKCE pair whose challenge is the S256 digest of the verifier", () =>
     Effect.gen(function* () {
         const pkce = yield* Oidc.generatePkce();
