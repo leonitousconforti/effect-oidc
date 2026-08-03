@@ -347,11 +347,8 @@ export const fetchDiscovery = Effect.fnUntraced(function* (issuer: string) {
  * @since 1.0.0
  * @category Client
  */
-export const fetchJwks = Effect.fnUntraced(function* (jwksUri: string) {
-    const response = yield* HttpClient.get(jwksUri);
-    const decoded = yield* HttpClientResponse.schemaJson(Schema.Struct({ body: Jwt.JwksSchema }))(response);
-    return decoded.body;
-});
+export const fetchJwks = (jwksUri: string) =>
+    HttpClient.get(jwksUri).pipe(Effect.flatMap(HttpClientResponse.schemaBodyJson(Jwt.JwksSchema)));
 
 /**
  * Builds the browser redirect URL that starts the code flow.
@@ -494,7 +491,7 @@ export const verifyIdToken = Effect.fnUntraced(function* (options: {
         audience: options.clientId,
         algorithms: ["ES256"],
     });
-    const idClaims = yield* Schema.decodeUnknownEffect(IdTokenClaimsSchema)(claims).pipe(
+    const idClaims = yield* Schema.decodeEffect(IdTokenClaimsSchema)(claims).pipe(
         Effect.mapError(() => new Jwt.JwtError({ reason: "Malformed" }))
     );
     // OIDC §3.1.3.7: when the token is issued to multiple audiences, or an azp
