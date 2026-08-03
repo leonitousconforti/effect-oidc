@@ -258,3 +258,21 @@ export const verify = Effect.fnUntraced(function* (
 
     return claims;
 });
+
+/**
+ * Converts a private JWK to its public half, dropping the private scalar and
+ * re-declaring `key_ops` for verification. The public JWK is suitable for
+ * publishing in the JWKS document.
+ *
+ * @since 1.0.0
+ * @category Keys
+ */
+export const toPublicKey = Effect.fnUntraced(function* (
+    privateJwk: Schema.Schema.Type<typeof PrivateJwkSchema>
+): Effect.fn.Return<Schema.Schema.Type<typeof PublicJwkSchema>, Schema.SchemaError, never> {
+    const { d: _d, key_ops: _keyOps, ...rest } = privateJwk;
+    return yield* Schema.decodeEffect(PublicJwkSchema)({
+        key_ops: ["verify"] as const,
+        ...rest,
+    });
+});
