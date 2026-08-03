@@ -1,5 +1,11 @@
 # effect-oidc
 
+## 0.0.4
+
+### Patch Changes
+
+- 8515ae0: Small improvements to OIDC
+
 ## 0.0.3
 
 ### Patch Changes
