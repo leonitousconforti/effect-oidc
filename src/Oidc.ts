@@ -143,7 +143,6 @@ export const RevocationRequestSchema = Schema.Struct({
  */
 export const IdTokenClaimsSchema = Schema.Struct({
     ...Jwt.RegisteredClaimsSchema.fields,
-    /** Authorized party - the client the id token was issued to. */
     azp: Schema.String.pipe(Schema.optional),
     nonce: Schema.String.pipe(Schema.optional),
     name: Schema.String.pipe(Schema.optional),
@@ -209,6 +208,7 @@ export const clientAuthentication = (options: {
     };
 }): Option.Option<{ readonly clientId: string; readonly clientSecret: string | undefined }> => {
     const header = options.authorization;
+
     if (typeof header === "string" && header.slice(0, 6).toLowerCase() === "basic ") {
         const decoded = Result.getOrUndefined(Encoding.decodeBase64String(header.slice(6).trim()));
         const separator = decoded === undefined ? -1 : decoded.indexOf(":");
@@ -224,9 +224,14 @@ export const clientAuthentication = (options: {
             return Option.none();
         }
     }
+
     if (options.request.client_id !== undefined) {
-        return Option.some({ clientId: options.request.client_id, clientSecret: options.request.client_secret });
+        return Option.some({
+            clientId: options.request.client_id,
+            clientSecret: options.request.client_secret,
+        });
     }
+
     return Option.none();
 };
 
@@ -245,7 +250,7 @@ export const issueAccessToken = Effect.fnUntraced(function* (options: {
     readonly scope: string;
     readonly ttlSeconds: number;
 }) {
-    const nowSeconds = Math.floor(DateTime.toEpochMillis(yield* DateTime.now) / 1000);
+    const nowSeconds = yield* DateTime.now.pipe(Effect.map((now) => Math.floor(DateTime.toEpochMillis(now) / 1000)));
     return yield* Jwt.sign({
         privateJwk: options.privateJwk,
         payload: {
@@ -275,9 +280,14 @@ export const issueIdToken = Effect.fnUntraced(function* (options: {
     readonly clientId: string;
     readonly ttlSeconds: number;
     readonly nonce?: string | undefined;
-    readonly profile?: { readonly name?: string | undefined; readonly picture?: string | undefined } | undefined;
+    readonly profile?:
+        | {
+              readonly name?: string | undefined;
+              readonly picture?: string | undefined;
+          }
+        | undefined;
 }) {
-    const nowSeconds = Math.floor(DateTime.toEpochMillis(yield* DateTime.now) / 1000);
+    const nowSeconds = yield* DateTime.now.pipe(Effect.map((now) => Math.floor(DateTime.toEpochMillis(now) / 1000)));
     return yield* Jwt.sign({
         privateJwk: options.privateJwk,
         payload: {
@@ -316,9 +326,10 @@ export const generatePkce = Effect.fnUntraced(function* () {
  * @category Client
  */
 export const fetchDiscovery = Effect.fnUntraced(function* (issuer: string) {
-    const response = yield* HttpClient.get(new URL("/.well-known/openid-configuration", issuer));
-    const decoded = yield* HttpClientResponse.schemaJson(Schema.Struct({ body: DiscoveryDocumentSchema }))(response);
-    const document = decoded.body;
+    const document = yield* Effect.flatMap(
+        HttpClient.get(new URL("/.well-known/openid-configuration", issuer)),
+        HttpClientResponse.schemaBodyJson(DiscoveryDocumentSchema)
+    );
 
     // OIDC Discovery 1.0 §4.3 / RFC 8414 §3.3: the returned issuer MUST equal
     // the one used to build the request, and every endpoint the client will
@@ -328,6 +339,7 @@ export const fetchDiscovery = Effect.fnUntraced(function* (issuer: string) {
     if (document.issuer !== issuer) {
         return yield* new DiscoveryError({ reason: "IssuerMismatch" });
     }
+
     const issuerOrigin = new URL(issuer).origin;
     for (const endpoint of [document.authorization_endpoint, document.token_endpoint, document.jwks_uri]) {
         const url = yield* Effect.try({
@@ -338,6 +350,7 @@ export const fetchDiscovery = Effect.fnUntraced(function* (issuer: string) {
             return yield* new DiscoveryError({ reason: "InvalidEndpoint" });
         }
     }
+
     return document;
 });
 
@@ -348,7 +361,7 @@ export const fetchDiscovery = Effect.fnUntraced(function* (issuer: string) {
  * @category Client
  */
 export const fetchJwks = (jwksUri: string) =>
-    HttpClient.get(jwksUri).pipe(Effect.flatMap(HttpClientResponse.schemaBodyJson(Jwt.JwksSchema)));
+    Effect.flatMap(HttpClient.get(jwksUri), HttpClientResponse.schemaBodyJson(Jwt.JwksSchema));
 
 /**
  * Builds the browser redirect URL that starts the code flow.
@@ -356,26 +369,28 @@ export const fetchJwks = (jwksUri: string) =>
  * @since 1.0.0
  * @category Client
  */
-export const authorizationUrl = (options: {
-    readonly authorizationEndpoint: string;
-    readonly clientId: string;
-    readonly redirectUri: string;
-    readonly scopes: ReadonlyArray<string>;
-    readonly state: string;
-    readonly codeChallenge: string;
-    readonly nonce?: string | undefined;
-}): string => {
-    const url = new URL(options.authorizationEndpoint);
-    url.searchParams.set("response_type", "code");
-    url.searchParams.set("client_id", options.clientId);
-    url.searchParams.set("redirect_uri", options.redirectUri);
-    url.searchParams.set("scope", options.scopes.join(" "));
-    url.searchParams.set("state", options.state);
-    url.searchParams.set("code_challenge", options.codeChallenge);
-    url.searchParams.set("code_challenge_method", "S256");
-    if (options.nonce !== undefined) url.searchParams.set("nonce", options.nonce);
-    return url.toString();
-};
+export const authorizationUrl =
+    (options: {
+        readonly authorizationEndpoint: string;
+        readonly clientId: string;
+        readonly redirectUri: string;
+        readonly scopes: ReadonlyArray<string>;
+        readonly state: string;
+        readonly codeChallenge: string;
+        readonly nonce?: string | undefined;
+    }) =>
+    (self: HttpClientRequest.HttpClientRequest): HttpClientRequest.HttpClientRequest =>
+        self.pipe(
+            HttpClientRequest.setUrl(options.authorizationEndpoint),
+            HttpClientRequest.setUrlParam("response_type", "code"),
+            HttpClientRequest.setUrlParam("client_id", options.clientId),
+            HttpClientRequest.setUrlParam("redirect_uri", options.redirectUri),
+            HttpClientRequest.setUrlParam("scope", options.scopes.join(" ")),
+            HttpClientRequest.setUrlParam("state", options.state),
+            HttpClientRequest.setUrlParam("code_challenge", options.codeChallenge),
+            HttpClientRequest.setUrlParam("code_challenge_method", "S256"),
+            options.nonce === undefined ? (self) => self : HttpClientRequest.setUrlParam("nonce", options.nonce)
+        );
 
 /**
  * Exchanges an authorization code for tokens at the provider's token
@@ -384,15 +399,15 @@ export const authorizationUrl = (options: {
  * @since 1.0.0
  * @category Client
  */
-export const exchangeAuthorizationCode = Effect.fnUntraced(function* (options: {
+export const exchangeAuthorizationCode = (options: {
     readonly tokenEndpoint: string;
     readonly clientId: string;
     readonly clientSecret?: string | undefined;
     readonly code: string;
     readonly codeVerifier: string;
     readonly redirectUri: string;
-}) {
-    const request = HttpClientRequest.post(options.tokenEndpoint).pipe(
+}) =>
+    HttpClientRequest.post(options.tokenEndpoint).pipe(
         HttpClientRequest.bodyUrlParams({
             grant_type: "authorization_code",
             code: options.code,
@@ -400,12 +415,10 @@ export const exchangeAuthorizationCode = Effect.fnUntraced(function* (options: {
             client_id: options.clientId,
             code_verifier: options.codeVerifier,
             ...(options.clientSecret === undefined ? {} : { client_secret: options.clientSecret }),
-        })
+        }),
+        HttpClient.execute,
+        Effect.flatMap(HttpClientResponse.schemaBodyJson(TokenResponseSchema))
     );
-    const response = yield* HttpClient.execute(request);
-    const decoded = yield* HttpClientResponse.schemaJson(Schema.Struct({ body: TokenResponseSchema }))(response);
-    return decoded.body;
-});
 
 /**
  * Obtains an access token with the client credentials grant - the machine
@@ -416,28 +429,28 @@ export const exchangeAuthorizationCode = Effect.fnUntraced(function* (options: {
  * @since 1.0.0
  * @category Client
  */
-export const exchangeClientCredentials = Effect.fnUntraced(function* (options: {
+export const exchangeClientCredentials = (options: {
     readonly tokenEndpoint: string;
     readonly clientId: string;
     readonly clientSecret: string;
     readonly scopes?: ReadonlyArray<string> | undefined;
-}) {
+}) => {
     // RFC 6749 Section 2.3.1: form-urlencode the id and secret before
     // joining them for the Basic header.
     const basic = Encoding.encodeBase64(
         `${encodeURIComponent(options.clientId)}:${encodeURIComponent(options.clientSecret)}`
     );
-    const request = HttpClientRequest.post(options.tokenEndpoint).pipe(
+
+    return HttpClientRequest.post(options.tokenEndpoint).pipe(
         HttpClientRequest.setHeader("authorization", `Basic ${basic}`),
         HttpClientRequest.bodyUrlParams({
             grant_type: "client_credentials",
             ...(options.scopes === undefined ? {} : { scope: options.scopes.join(" ") }),
-        })
+        }),
+        HttpClient.execute,
+        Effect.flatMap(HttpClientResponse.schemaBodyJson(TokenResponseSchema))
     );
-    const response = yield* HttpClient.execute(request);
-    const decoded = yield* HttpClientResponse.schemaJson(Schema.Struct({ body: TokenResponseSchema }))(response);
-    return decoded.body;
-});
+};
 
 /**
  * Revokes a token at the provider's RFC 7009 revocation endpoint.
@@ -447,18 +460,19 @@ export const exchangeClientCredentials = Effect.fnUntraced(function* (options: {
  * @since 1.0.0
  * @category Client
  */
-export const revokeToken = Effect.fnUntraced(function* (options: {
+export const revokeToken = (options: {
     readonly revocationEndpoint: string;
     readonly token: string;
     readonly clientId?: string | undefined;
     readonly clientSecret?: string | undefined;
-}) {
+}) => {
     const basic =
         options.clientId === undefined || options.clientSecret === undefined
             ? undefined
             : Encoding.encodeBase64(
                   `${encodeURIComponent(options.clientId)}:${encodeURIComponent(options.clientSecret)}`
               );
+
     const request = HttpClientRequest.post(options.revocationEndpoint).pipe(
         basic === undefined ? (self) => self : HttpClientRequest.setHeader("authorization", `Basic ${basic}`),
         HttpClientRequest.bodyUrlParams({
@@ -466,8 +480,9 @@ export const revokeToken = Effect.fnUntraced(function* (options: {
             ...(basic === undefined && options.clientId !== undefined ? { client_id: options.clientId } : {}),
         })
     );
-    yield* HttpClient.execute(request);
-});
+
+    return HttpClient.execute(request);
+};
 
 /**
  * Verifies an id token against the issuer's JWKS and decodes its claims,
@@ -491,9 +506,11 @@ export const verifyIdToken = Effect.fnUntraced(function* (options: {
         audience: options.clientId,
         algorithms: ["ES256"],
     });
+
     const idClaims = yield* Schema.decodeEffect(IdTokenClaimsSchema)(claims).pipe(
         Effect.mapError(() => new Jwt.JwtError({ reason: "Malformed" }))
     );
+
     // OIDC §3.1.3.7: when the token is issued to multiple audiences, or an azp
     // claim is present, azp MUST be present and equal to this client id.
     const audiences = typeof idClaims.aud === "string" ? [idClaims.aud] : idClaims.aud;
@@ -503,5 +520,6 @@ export const verifyIdToken = Effect.fnUntraced(function* (options: {
     if (options.nonce !== undefined && idClaims.nonce !== options.nonce) {
         return yield* new Jwt.JwtError({ reason: "BadSignature" });
     }
+
     return idClaims;
 });
