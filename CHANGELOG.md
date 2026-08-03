@@ -1,5 +1,11 @@
 # effect-oidc
 
+## 0.0.3
+
+### Patch Changes
+
+- bf804a6: Improve middleware
+
 ## 0.0.2
 
 ### Patch Changes
