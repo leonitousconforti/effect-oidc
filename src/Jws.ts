@@ -697,7 +697,7 @@ export function sign<
             privateKeys,
             Effect.fnUntraced(function* ({ algorithm, header, key }) {
                 const protectedHeader = yield* encodeProtected({
-                    alg: algorithm as any,
+                    alg: algorithm,
                     ...header,
                     ...criticalHeaders,
                     ...(criticalKeys.length === 0 ? {} : { crit: criticalKeys }),
