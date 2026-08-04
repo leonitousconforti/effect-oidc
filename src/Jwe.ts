@@ -26,7 +26,7 @@
 import { Data, Effect, Schema, SchemaGetter } from "effect";
 
 import { encryptionParameters, JweAlgorithm, JweEncryption } from "./Jwa.ts";
-import { Jwk } from "./Jwk.ts";
+import { Jwk, toJsonWebKey } from "./Jwk.ts";
 
 const textEncoder = new TextEncoder();
 
@@ -257,6 +257,12 @@ const timingSafeEqual = (a: Uint8Array, b: Uint8Array): boolean => {
 /** @internal */
 const die = (reason: JweErrorReason) => (cause: unknown) => new JweError({ reason, cause });
 
+/** @internal */
+const CompactFromString = Schema.String.pipe(Schema.decodeTo(Compact));
+
+/** @internal */
+const ProtectedHeaderFromJsonString = Schema.fromJsonString(ProtectedHeader);
+
 /**
  * Decodes attacker-supplied base64url, mapping `atob` throws to a typed
  * Malformed error.
@@ -424,7 +430,8 @@ const aesKwUnwrap = (kek: CryptoKey, wrapped: Uint8Array) =>
 
 /** @internal */
 const ecKeyInfo = (key: CryptoKey) => {
-    const namedCurve = (key.algorithm as EcKeyAlgorithm).namedCurve;
+    const namedCurve =
+        "namedCurve" in key.algorithm && typeof key.algorithm.namedCurve === "string" ? key.algorithm.namedCurve : "";
     // deriveBits length must be byte-aligned; P-521 shared secrets are 66 bytes.
     const bitLength = namedCurve === "P-256" ? 256 : namedCurve === "P-384" ? 384 : 528;
     return { namedCurve, bitLength };
@@ -602,15 +609,15 @@ const keyManagementDecrypt = Effect.fnUntraced(function* (
         case "ECDH-ES+A128KW":
         case "ECDH-ES+A192KW":
         case "ECDH-ES+A256KW": {
-            if (header.epk === undefined) return yield* new JweError({ reason: "Malformed" });
+            const epk = header.epk;
+            if (epk === undefined) return yield* new JweError({ reason: "Malformed" });
             // The recipient's own curve is used for import. WebCrypto's EC "jwk"
             // import rejects an epk whose "crv" does not match (and validates the
             // point lies on the curve), which is what defeats invalid-curve attacks;
             // a mismatch surfaces here as a typed KeyManagementFailed, not a defect.
             const { bitLength, namedCurve } = ecKeyInfo(key);
             const ephemeralPublic = yield* Effect.tryPromise({
-                try: () =>
-                    crypto.subtle.importKey("jwk", header.epk as JsonWebKey, { name: "ECDH", namedCurve }, false, []),
+                try: () => crypto.subtle.importKey("jwk", toJsonWebKey(epk), { name: "ECDH", namedCurve }, false, []),
                 catch: die("KeyManagementFailed"),
             });
             const sharedSecret = new Uint8Array(
@@ -741,18 +748,18 @@ export const decrypt = Effect.fnUntraced(function* (options: {
     /** Maximum PBES2 iteration count accepted (defaults to 10000; DoS guard). */
     readonly maxPBES2Count?: number | undefined;
 }) {
-    const parts = yield* Schema.decodeUnknownEffect(Compact)(options.jwe).pipe(
+    const parts = yield* Schema.decodeEffect(CompactFromString)(options.jwe).pipe(
         Effect.mapError((cause) => new JweError({ reason: "Malformed", cause }))
     );
 
     const headerBytes = yield* decodeB64(parts.protected);
-    const header = yield* Schema.decodeUnknownEffect(ProtectedHeader)(
-        yield* Effect.try({ try: () => JSON.parse(new TextDecoder().decode(headerBytes)), catch: die("Malformed") })
+    const header = yield* Schema.decodeEffect(ProtectedHeaderFromJsonString)(
+        new TextDecoder().decode(headerBytes)
     ).pipe(Effect.mapError((cause) => new JweError({ reason: "Malformed", cause })));
 
     // RFC 7516 §4.1.13: any `crit` extension we do not understand MUST be
     // rejected. This implementation understands no critical extensions.
-    if ((header as Record<string, unknown>).crit !== undefined) {
+    if (header.crit !== undefined) {
         return yield* new JweError({ reason: "UnsupportedAlgorithm" });
     }
     if (options.keyManagementAlgorithms !== undefined && !options.keyManagementAlgorithms.includes(header.alg)) {

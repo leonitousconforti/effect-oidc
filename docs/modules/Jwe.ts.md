@@ -303,7 +303,7 @@ declare const decrypt: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L734)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L741)
 
 Since v1.0.0
 
@@ -337,7 +337,7 @@ declare const encrypt: (options: {
 }) => Effect.Effect<string, JweError, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L682)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L689)
 
 Since v1.0.0
 

@@ -404,3 +404,35 @@ export const isSymmetric = (jwk: (typeof Jwk)["Type"]): boolean => jwk.kty === "
  * @category Compatibility
  */
 export const isPrivate = (jwk: (typeof Jwk)["Type"]): boolean => (jwk.kty === "EC" || jwk.kty === "RSA") && "d" in jwk;
+
+/**
+ * Converts a decoded JWK into the `JsonWebKey` shape that
+ * `crypto.subtle.importKey` accepts, carrying only the members WebCrypto
+ * reads (key material plus `use`/`key_ops`/`alg`) with mutable arrays.
+ *
+ * @internal
+ */
+export const toJsonWebKey = (jwk: (typeof Jwk)["Type"]): JsonWebKey => {
+    const common = {
+        ...(jwk.use === undefined ? {} : { use: jwk.use }),
+        ...(jwk.key_ops === undefined ? {} : { key_ops: [...jwk.key_ops] }),
+        ...(jwk.alg === undefined ? {} : { alg: jwk.alg }),
+    };
+
+    switch (jwk.kty) {
+        case "EC":
+            return { kty: jwk.kty, crv: jwk.crv, x: jwk.x, y: jwk.y, ...("d" in jwk ? { d: jwk.d } : {}), ...common };
+        case "RSA":
+            return {
+                kty: jwk.kty,
+                n: jwk.n,
+                e: jwk.e,
+                ...("d" in jwk ? { d: jwk.d } : {}),
+                ...("p" in jwk ? { p: jwk.p, q: jwk.q, dp: jwk.dp, dq: jwk.dq, qi: jwk.qi } : {}),
+                ...("oth" in jwk && jwk.oth !== undefined ? { oth: jwk.oth.map((prime) => ({ ...prime })) } : {}),
+                ...common,
+            };
+        case "oct":
+            return { kty: jwk.kty, k: jwk.k, ...common };
+    }
+};

@@ -1,8 +1,12 @@
-import type { HttpApiError } from "effect/unstable/httpapi";
-
 import { Context, Effect, Layer, Redacted, Schema } from "effect";
-import { HttpClient, HttpClientResponse, HttpServerResponse } from "effect/unstable/http";
-import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi";
+import {
+    HttpClient,
+    HttpClientResponse,
+    HttpRouter,
+    HttpServerRequest,
+    HttpServerResponse,
+} from "effect/unstable/http";
+import { HttpApiEndpoint, HttpApiError, HttpApiGroup } from "effect/unstable/httpapi";
 
 import { expect, it } from "@effect/vitest";
 import { Jwt, Oidc, ResourceServer } from "effect-oidc";
@@ -51,23 +55,52 @@ const makeHarness = Effect.fnUntraced(function* (layerOptions?: {
 
     // Invokes the bearer security-scheme handler exactly as the `HttpApi`
     // builder would, with the decoded credential (empty when absent). The
-    // middleware never touches the router-provided services, so the
-    // requirements the security signature carries can be discarded here.
-    const call = (token: string, endpoint: unknown, callOptions?: { readonly group?: unknown }) => {
+    // middleware never reads the router-provided services, so stub values
+    // satisfy that requirement; `next` never fails, so any error outside the
+    // middleware's declared ones is a defect.
+    const routerProvided = Context.make(
+        HttpServerRequest.HttpServerRequest,
+        HttpServerRequest.fromWeb(new Request("http://localhost/notes"))
+    ).pipe(
+        Context.add(HttpServerRequest.ParsedSearchParams, {}),
+        Context.add(HttpRouter.RouteContext, {
+            params: {},
+            route: HttpRouter.route("*", "/notes", HttpServerResponse.empty()),
+        })
+    );
+    // `HttpApiEndpoint.Top`/`HttpApiGroup.Top` are not supertypes of concrete
+    // endpoints and groups (the `~Request` phantom lacks the request-part
+    // members Top carries), so the erasure the `HttpApi` builder performs is
+    // reproduced with conversions through the widened `Constraint` types.
+    const call = (
+        token: string,
+        endpoint: HttpApiEndpoint.Constraint,
+        callOptions?: { readonly group?: HttpApiGroup.Constraint }
+    ) => {
         let seen: (typeof ResourceServer.CurrentUser)["Service"] | undefined;
         const next = Effect.gen(function* () {
             seen = yield* ResourceServer.CurrentUser;
             return HttpServerResponse.empty();
         });
-        const handled = authorization.bearer(next, {
-            credential: Redacted.make(token),
-            endpoint: endpoint as never,
-            group: (callOptions?.group ?? notes) as never,
-        }) as unknown as Effect.Effect<
-            HttpServerResponse.HttpServerResponse,
-            HttpApiError.Unauthorized | HttpApiError.Forbidden | HttpApiError.InternalServerError
-        >;
-        return Effect.map(handled, () => seen as NonNullable<typeof seen>);
+        return authorization
+            .bearer(next, {
+                credential: Redacted.make(token),
+                endpoint: endpoint as HttpApiEndpoint.Top,
+                group: (callOptions?.group ?? notes) as HttpApiGroup.Top,
+            })
+            .pipe(
+                Effect.provideContext(routerProvided),
+                Effect.catch((error) =>
+                    error instanceof HttpApiError.Unauthorized ||
+                    error instanceof HttpApiError.Forbidden ||
+                    error instanceof HttpApiError.InternalServerError
+                        ? Effect.fail(error)
+                        : Effect.die(error)
+                ),
+                Effect.flatMap(() =>
+                    seen === undefined ? Effect.die(new Error("CurrentUser was not provided")) : Effect.succeed(seen)
+                )
+            );
     };
 
     return { issueToken, call };
@@ -226,7 +259,7 @@ it.live("answers 500 when the revocation check itself fails", () =>
 
 it.live("requireScopes guards individual handlers against the granted scopes", () =>
     Effect.gen(function* () {
-        const claims = yield* Schema.decodeUnknownEffect(Oidc.AccessTokenClaimsSchema)({
+        const claims = yield* Schema.decodeEffect(Oidc.AccessTokenClaimsSchema)({
             iss: issuer,
             sub: "user-123",
             aud: audience,

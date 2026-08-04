@@ -29,7 +29,7 @@ Since v1.0.0
 ## Exports Grouped by Category
 
 - [Client](#client)
-  - [authorizationUrl](#authorizationurl)
+  - [authorizationRequest](#authorizationrequest)
   - [exchangeAuthorizationCode](#exchangeauthorizationcode)
   - [exchangeClientCredentials](#exchangeclientcredentials)
   - [fetchDiscovery](#fetchdiscovery)
@@ -57,14 +57,14 @@ Since v1.0.0
 
 # Client
 
-## authorizationUrl
+## authorizationRequest
 
 Builds the browser redirect URL that starts the code flow.
 
 **Signature**
 
 ```ts
-declare const authorizationUrl: (options: {
+declare const authorizationRequest: (options: {
   readonly authorizationEndpoint: string
   readonly clientId: string
   readonly redirectUri: string
@@ -72,10 +72,10 @@ declare const authorizationUrl: (options: {
   readonly state: string
   readonly codeChallenge: string
   readonly nonce?: string | undefined
-}) => string
+}) => HttpClientRequest.HttpClientRequest
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L362)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L372)
 
 Since v1.0.0
 
@@ -108,7 +108,7 @@ declare const exchangeAuthorizationCode: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L390)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L400)
 
 Since v1.0.0
 
@@ -141,7 +141,7 @@ declare const exchangeClientCredentials: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L422)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L430)
 
 Since v1.0.0
 
@@ -170,12 +170,12 @@ declare const fetchDiscovery: (
     readonly token_endpoint_auth_methods_supported?: ReadonlyArray<string> | undefined
     readonly revocation_endpoint?: string | undefined
   },
-  Schema.SchemaError | DiscoveryError | HttpClientError,
+  Schema.SchemaError | HttpClientError | DiscoveryError,
   HttpClient.HttpClient
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L318)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L328)
 
 Since v1.0.0
 
@@ -389,7 +389,7 @@ declare const fetchJwks: (
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L350)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L363)
 
 Since v1.0.0
 
@@ -403,7 +403,7 @@ Generates a PKCE verifier and its S256 challenge.
 declare const generatePkce: () => Effect.Effect<{ verifier: string; challenge: string; method: "S256" }, never, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L302)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L312)
 
 Since v1.0.0
 
@@ -421,10 +421,10 @@ declare const revokeToken: (options: {
   readonly token: string
   readonly clientId?: string | undefined
   readonly clientSecret?: string | undefined
-}) => Effect.Effect<void, HttpClientError, HttpClient.HttpClient>
+}) => Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError, HttpClient.HttpClient>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L453)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L461)
 
 Since v1.0.0
 
@@ -463,7 +463,7 @@ declare const verifyIdToken: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L484)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L494)
 
 Since v1.0.0
 
@@ -479,7 +479,7 @@ Raised when a fetched discovery document fails validation.
 declare class DiscoveryError
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L159)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L158)
 
 Since v1.0.0
 
@@ -510,7 +510,7 @@ declare const clientAuthentication: (options: {
 }) => Option.Option<{ readonly clientId: string; readonly clientSecret: string | undefined }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L202)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L201)
 
 Since v1.0.0
 
@@ -532,7 +532,7 @@ declare const issueAccessToken: (options: {
 }) => Effect.Effect<string, Schema.SchemaError, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L239)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L244)
 
 Since v1.0.0
 
@@ -555,7 +555,7 @@ declare const issueIdToken: (options: {
 }) => Effect.Effect<string, Schema.SchemaError, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L271)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L276)
 
 Since v1.0.0
 
@@ -570,7 +570,7 @@ endpoint paths.
 declare const makeDiscoveryDocument: (issuer: string) => Schema.Schema.Type<typeof DiscoveryDocumentSchema>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L171)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L170)
 
 Since v1.0.0
 
@@ -689,8 +689,8 @@ until the token's `exp`, which keeps the denylist bounded.
 
 ```ts
 declare const RevocationRequestSchema: Schema.Struct<{
-  readonly token: Schema.String
   readonly token_type_hint: Schema.optional<Schema.String>
+  readonly token: Schema.String
 }>
 ```
 

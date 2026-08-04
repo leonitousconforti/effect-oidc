@@ -52,7 +52,7 @@ const program = Effect.gen(function* () {
 
     // A verifier holding only ONE of the public keys still accepts it - any
     // valid signature over the payload is enough.
-    const decoded = yield* Schema.decodeUnknownEffect(Jws.General)(general);
+    const decoded = yield* Schema.decodeEffect(Jws.General)(general);
     const viaRsa = yield* Jws.verify({ publicKeys: [rsaPair.publicKey] })(decoded);
     yield* Console.log("verified by", viaRsa.protected.kid, "->", viaRsa.payload);
 
@@ -68,7 +68,7 @@ const program = Effect.gen(function* () {
     const flattened = yield* signWithExpiry("payload guarded by a critical header", { expiresAt: 1_767_225_600 });
     yield* Console.log("crit header on the wire:", flattened.protected);
 
-    const unverified = yield* Schema.decodeUnknownEffect(Jws.Flattened)(flattened);
+    const unverified = yield* Schema.decodeEffect(Jws.Flattened)(flattened);
 
     // A verifier that does NOT declare the extension must reject the token
     // (RFC 7515 Section 4.1.11) - unknown critical headers are not skippable.

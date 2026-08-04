@@ -28,6 +28,7 @@ Since v1.0.0
   - [JwtError (class)](#jwterror-class)
 - [Keys](#keys)
   - [generateSigningKey](#generatesigningkey)
+  - [toPublicKey](#topublickey)
 - [Schema](#schema)
   - [JwksSchema](#jwksschema)
   - [PrivateJwkSchema](#privatejwkschema)
@@ -37,6 +38,7 @@ Since v1.0.0
 - [Signing](#signing)
   - [sign](#sign)
 - [Verification](#verification)
+  - [decodeClaims](#decodeclaims)
   - [verify](#verify)
 
 ---
@@ -137,7 +139,84 @@ declare const generateSigningKey: () => Effect.Effect<
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L123)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L126)
+
+Since v1.0.0
+
+## toPublicKey
+
+Converts a private JWK to its public half, dropping the private scalar and
+re-declaring `key_ops` for verification. The public JWK is suitable for
+publishing in the JWKS document.
+
+**Signature**
+
+```ts
+declare const toPublicKey: (privateJwk: {
+  readonly kty: "EC"
+  readonly crv: "P-256" | "P-384" | "P-521"
+  readonly x: string
+  readonly y: string
+  readonly d: string
+  readonly use?: "sig" | "enc" | undefined
+  readonly key_ops?:
+    | ReadonlyArray<"sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits">
+    | undefined
+  readonly alg?:
+    | "HS256"
+    | "HS384"
+    | "HS512"
+    | "RS256"
+    | "RS384"
+    | "RS512"
+    | "ES256"
+    | "ES384"
+    | "ES512"
+    | "PS256"
+    | "PS384"
+    | "PS512"
+    | undefined
+  readonly kid?: string | undefined
+  readonly x5u?: string | undefined
+  readonly x5c?: ReadonlyArray<string> | undefined
+  readonly x5t?: string | undefined
+  readonly "x5t#S256"?: string | undefined
+}) => Effect.Effect<
+  {
+    readonly kty: "EC"
+    readonly crv: "P-256" | "P-384" | "P-521"
+    readonly x: string
+    readonly y: string
+    readonly use?: "sig" | "enc" | undefined
+    readonly key_ops?:
+      | ReadonlyArray<"sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits">
+      | undefined
+    readonly alg?:
+      | "HS256"
+      | "HS384"
+      | "HS512"
+      | "RS256"
+      | "RS384"
+      | "RS512"
+      | "ES256"
+      | "ES384"
+      | "ES512"
+      | "PS256"
+      | "PS384"
+      | "PS512"
+      | undefined
+    readonly kid?: string | undefined
+    readonly x5u?: string | undefined
+    readonly x5c?: ReadonlyArray<string> | undefined
+    readonly x5t?: string | undefined
+    readonly "x5t#S256"?: string | undefined
+  },
+  Schema.SchemaError,
+  never
+>
+```
+
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L295)
 
 Since v1.0.0
 
@@ -571,11 +650,41 @@ declare const sign: (options: {
 }) => Effect.Effect<string, Schema.SchemaError, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L154)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L168)
 
 Since v1.0.0
 
 # Verification
+
+## decodeClaims
+
+Builds a decoder that narrows the standard claims returned by
+`verify` with a more precise, token-specific claims schema, turning
+the `unknown` values of the rest record into fully typed claims.
+
+**Signature**
+
+```ts
+declare const decodeClaims: <S extends Schema.Top>(
+  schema: S
+) => (
+  input: {
+    readonly [x: string]: unknown
+    readonly aud: string | ReadonlyArray<string>
+    readonly iss: string
+    readonly sub: string
+    readonly exp: number
+    readonly iat: number
+    readonly nbf?: number | undefined
+    readonly jti?: string | undefined
+  },
+  options?: ParseOptions
+) => Effect.Effect<S["Type"], Schema.SchemaError, S["DecodingServices"]>
+```
+
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L284)
+
+Since v1.0.0
 
 ## verify
 
@@ -613,6 +722,6 @@ declare const verify: (
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L193)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwt.ts#L207)
 
 Since v1.0.0

@@ -52,7 +52,7 @@
 import type { HttpClient } from "effect/unstable/http";
 import type { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi";
 
-import { Context, Duration, Effect, Layer, Option, Redacted, Ref, Schema } from "effect";
+import { Context, Duration, Effect, Layer, Option, Redacted, Ref, type Schema } from "effect";
 import { HttpApiError, HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi";
 
 import type * as Jwa from "./Jwa.ts";
@@ -220,7 +220,7 @@ export const layer = <RRevoked = never>(options: {
                         algorithms,
                     }).pipe(Effect.catch(() => new HttpApiError.Unauthorized()));
 
-                    const accessClaims = yield* Schema.decodeUnknownEffect(Oidc.AccessTokenClaimsSchema)(claims).pipe(
+                    const accessClaims = yield* Jwt.decodeClaims(Oidc.AccessTokenClaimsSchema)(claims).pipe(
                         Effect.catch(() => new HttpApiError.Unauthorized())
                     );
 

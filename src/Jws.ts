@@ -30,12 +30,11 @@ import {
     SchemaGetter,
     SchemaIssue,
     type Struct,
-    Tuple,
 } from "effect";
 import { VariantSchema } from "effect/unstable/schema";
 
 import { importParameters, JwsAlgorithm, signatureParameters } from "./Jwa.ts";
-import { isCompatibleWith, isPrivate, isSymmetric, Jwk, type JwkSet } from "./Jwk.ts";
+import { isCompatibleWith, isPrivate, isSymmetric, Jwk, type JwkSet, toJsonWebKey } from "./Jwk.ts";
 
 const joseVariantSchema = VariantSchema.make({
     variants: ["protected", "unprotected"],
@@ -206,79 +205,9 @@ export type ValidateCriticalHeaderKeys<
 };
 
 /**
- * Adds a critical extension header to a JoseHeader-like struct schema. Each
- * call adds the field, and updates the `crit` field to be an exact tuple of
- * all registered critical header key literals.
- *
- * @internal
- * @see https://www.rfc-editor.org/rfc/rfc7515#section-4
- */
-const joseHeaderWithCritical = <const K extends string, S extends Schema.Codec<unknown, Schema.Json, unknown, unknown>>(
-    key: K & ValidateCriticalHeaderKey<K>,
-    schema: S
-) => {
-    type InputConstraint =
-        | typeof JoseProtectedHeader.fields
-        | { readonly crit: Schema.$Array<Schema.Union<Array.NonEmptyReadonlyArray<Schema.Literal<string>>>> };
-
-    type ValidateJoseHeaderAndKey<OldFields extends InputConstraint> =
-        OldFields["crit"] extends Schema.$Array<
-            Schema.Union<Array.NonEmptyReadonlyArray<Schema.Literal<infer OldCritKeys>>>
-        >
-            ? [OldCritKeys] extends [K]
-                ? `Critical header key '${K}' already exists`
-                : {}
-            : {};
-
-    return <
-        OldFields extends InputConstraint,
-        NewFields extends {
-            readonly [k in K]: S;
-        } & {
-            readonly crit: OldFields["crit"] extends Schema.$Array<Schema.Union<infer Elements>>
-                ? Schema.$Array<Schema.Union<[...Elements, Schema.Literal<K>]>>
-                : Schema.$Array<Schema.Union<Array.NonEmptyReadonlyArray<Schema.Literal<K>>>>;
-        },
-    >(
-        self: Schema.Struct<OldFields> & ValidateJoseHeaderAndKey<OldFields>
-    ): Schema.Struct<Struct.Simplify<Struct.Assign<OldFields, NewFields>>> => {
-        const crit = self.fields.crit as
-            | Schema.optionalKey<typeof Schema.Never>
-            | Schema.$Array<Schema.Union<Array.NonEmptyReadonlyArray<Schema.Literal<string>>>>;
-
-        if ("value" in crit && crit.value.members.some((member) => member.literal === key)) {
-            const newFields = { [key]: schema } as unknown as NewFields;
-            return self.pipe(Schema.fieldsAssign(newFields)) as never;
-        }
-
-        const keySchema = Schema.Literal(key);
-        const prevLength = "value" in crit ? crit.value.members.length : 0;
-
-        const critSchema =
-            "value" in crit
-                ? Schema.Array(crit.value.mapMembers(Tuple.appendElement(keySchema)))
-                : Schema.Array(Schema.Union([keySchema]));
-
-        const newFields = {
-            [key]: schema,
-            crit: critSchema.check(
-                Schema.isUnique({
-                    message: "Duplicate critical header keys are not allowed",
-                }),
-                Schema.isMinLength(prevLength + 1, {
-                    message: "All critical header keys should be present",
-                })
-            ),
-        } as unknown as NewFields;
-
-        return self.pipe(Schema.fieldsAssign(newFields));
-    };
-};
-
-/**
  * Adds a collection of critical extension headers to a JoseHeader-like struct
- * schema. Each call adds the fields, and updates the `crit` field to be an
- * exact tuple of all registered critical header key literals.
+ * schema. The fields are added, and the `crit` field becomes an exact tuple
+ * of all registered critical header key literals.
  *
  * @internal
  * @see https://www.rfc-editor.org/rfc/rfc7515#section-4
@@ -288,7 +217,7 @@ const joseHeaderWithCriticals = <
         readonly [K in string]: Schema.Codec<unknown, Schema.Json, unknown, unknown>;
     },
 >(
-    criticalHeaders: CriticalHeaders & ValidateCriticalHeaderKeys<CriticalHeaders>
+    criticalHeaders: (CriticalHeaders & ValidateCriticalHeaderKeys<CriticalHeaders>) | undefined
 ) => {
     type KeyLiterals = Extract<keyof CriticalHeaders, string>;
 
@@ -316,11 +245,35 @@ const joseHeaderWithCriticals = <
     >(
         self: Schema.Struct<OldFields> & ValidateJoseHeaderAndKey<OldFields>
     ): Schema.Struct<Struct.Simplify<Struct.Assign<OldFields, NewFields>>> => {
-        let schema = self;
-        for (const [key, value] of Object.entries(criticalHeaders)) {
-            schema = schema.pipe(joseHeaderWithCritical(key, value) as any);
-        }
-        return schema as any;
+        // The return type is computed at the type level from `OldFields` and
+        // `CriticalHeaders`; the compiler cannot verify a runtime-built schema
+        // against it, so both returns coerce. The construction mirrors the
+        // type-level formula exactly: every critical header key becomes a
+        // field, and `crit` becomes the array of all registered key literals.
+        const entries = Object.entries(criticalHeaders ?? {});
+        if (entries.length === 0) return self as never;
+
+        const crit: InputConstraint["crit"] = self.fields.crit;
+        const existingMembers = "value" in crit ? crit.value.members : [];
+        const existingKeys = new Set(existingMembers.map((member) => member.literal));
+        const critMembers = [
+            ...existingMembers,
+            ...entries.filter(([key]) => !existingKeys.has(key)).map(([key]) => Schema.Literal(key)),
+        ];
+
+        const newFields = {
+            ...Object.fromEntries(entries),
+            crit: Schema.Array(Schema.Union(critMembers)).check(
+                Schema.isUnique({
+                    message: "Duplicate critical header keys are not allowed",
+                }),
+                Schema.isMinLength(critMembers.length, {
+                    message: "All critical header keys should be present",
+                })
+            ),
+        };
+
+        return self.pipe(Schema.fieldsAssign(newFields)) as never;
     };
 };
 
@@ -460,6 +413,17 @@ export class Compact extends Schema.Opaque<Compact, Brand.Brand<"Compact">>()(
 export const Unsecured = Schema.Union([General, Flattened, Compact]);
 
 /**
+ * The payload codec used when a caller does not supply one. Every signature
+ * that leaves `payload` out also leaves `A` (and the payload service
+ * parameters) at their `string`/`never` defaults, so `Schema.String` is the
+ * correct codec; the compiler cannot connect a type parameter to its
+ * default, hence the coercion.
+ *
+ * @internal
+ */
+const defaultPayloadCodec = <A, RD, RE>(): Schema.Codec<A, string, RD, RE> => Schema.String as never;
+
+/**
  * @since 1.0.0
  * @category Errors
  */
@@ -518,11 +482,10 @@ export function verify<
     const keys = globalThis.Array.from(publicKeys ?? []);
     const textEncoder = new TextEncoder();
 
-    const defaultPayloadSchema = Schema.String as unknown as Schema.Codec<A, string, RD1, unknown>;
-    const defaultCritical = {} as CriticalHeaders & ValidateCriticalHeaderKeys<CriticalHeaders>;
-
-    const payloadSchema = Schema.StringFromBase64Url.pipe(Schema.decodeTo(payload ?? defaultPayloadSchema));
-    const joseProtectedSchema = JoseProtectedHeader.pipe(joseHeaderWithCriticals(criticalHeaders ?? defaultCritical));
+    const payloadSchema = Schema.StringFromBase64Url.pipe(
+        Schema.decodeTo(payload ?? defaultPayloadCodec<A, RD1, unknown>())
+    );
+    const joseProtectedSchema = JoseProtectedHeader.pipe(joseHeaderWithCriticals(criticalHeaders));
     const protectedHeaderSchema = Schema.StringFromBase64Url.pipe(
         Schema.decodeTo(Schema.fromJsonString(joseProtectedSchema))
     );
@@ -535,8 +498,8 @@ export function verify<
     // treat that as an unusable key (null) rather than an unrecoverable defect.
     const importJwk = (jwk: (typeof Jwk)["Type"], alg: (typeof JwsAlgorithm)["Type"]) =>
         Effect.tryPromise(() =>
-            crypto.subtle.importKey("jwk", jwk as JsonWebKey, importParameters(alg), false, ["verify"])
-        ).pipe(Effect.catch(() => Effect.succeed(null as CryptoKey | null)));
+            crypto.subtle.importKey("jwk", toJsonWebKey(jwk), importParameters(alg), false, ["verify"])
+        ).pipe(Effect.catch(() => Effect.succeed<CryptoKey | null>(null)));
 
     const verifier = Effect.fnUntraced(function* (jws: General) {
         if (jws.signatures.length > maxSignatures) {
@@ -661,17 +624,16 @@ export function sign<
     criticalHeaders?: (CriticalHeaders & ValidateCriticalHeaderKeys<CriticalHeaders>) | undefined;
 }): (
     payload: A,
-    criticalHeaders: Schema.Struct.Type<CriticalHeaders>
+    criticalHeaders?: Schema.Struct.Type<CriticalHeaders> | undefined
 ) => Effect.Effect<
     PrivateKeys extends [infer _] ? (typeof Flattened)["Encoded"] : (typeof General)["Encoded"],
     Schema.SchemaError,
     RE1 | Schema.Struct.EncodingServices<CriticalHeaders>
 > {
     const textEncoder = new TextEncoder();
-    const defaultCritical = {} as CriticalHeaders & ValidateCriticalHeaderKeys<CriticalHeaders>;
 
     const payloadSchema = Schema.StringFromBase64Url.pipe(Schema.decodeTo(options.payload ?? Schema.String));
-    const joseSchema = JoseProtectedHeader.pipe(joseHeaderWithCriticals(options.criticalHeaders ?? defaultCritical));
+    const joseSchema = JoseProtectedHeader.pipe(joseHeaderWithCriticals(options.criticalHeaders));
     const protectedHeaderSchema = Schema.StringFromBase64Url.pipe(Schema.decodeTo(Schema.fromJsonString(joseSchema)));
 
     const encodePayload = Schema.encodeEffect(payloadSchema);
@@ -686,7 +648,7 @@ export function sign<
 
     const signMany = (
         encodedPayload: string,
-        criticalHeaders: Schema.Struct.Type<CriticalHeaders>,
+        criticalHeaders: Schema.Struct.Type<CriticalHeaders> | undefined,
         privateKeys: Array.NonEmptyReadonlyArray<{
             algorithm: (typeof JwsAlgorithm)["Type"];
             key: CryptoKey;
@@ -696,12 +658,15 @@ export function sign<
         Effect.forEach(
             privateKeys,
             Effect.fnUntraced(function* ({ algorithm, header, key }) {
+                // The header schema's input type is computed at the type level
+                // from `CriticalHeaders`; this object matches it by the same
+                // construction, which the compiler cannot verify - coerce.
                 const protectedHeader = yield* encodeProtected({
                     alg: algorithm,
                     ...header,
                     ...criticalHeaders,
                     ...(criticalKeys.length === 0 ? {} : { crit: criticalKeys }),
-                } as any);
+                } as never);
                 const signature = yield* Effect.promise(() =>
                     crypto.subtle.sign(
                         signatureParameters(algorithm),
@@ -716,24 +681,28 @@ export function sign<
             })
         );
 
-    return Effect.fnUntraced(function* (payload: A, criticalHeaders: Schema.Struct.Type<CriticalHeaders>) {
+    return Effect.fnUntraced(function* (payload: A, criticalHeaders?: Schema.Struct.Type<CriticalHeaders> | undefined) {
         const encodedPayload = yield* encodePayload(payload);
         const signatures = yield* signMany(encodedPayload, criticalHeaders, options.privateKeys);
-        type Ret = PrivateKeys extends [infer _] ? (typeof Flattened)["Encoded"] : (typeof General)["Encoded"];
-        return options.privateKeys.length === 1
-            ? ((yield* Schema.encodeEffect(Flattened)(
-                  Flattened.make({
-                      unverifiedPayload: encodedPayload,
-                      protected: Array.headNonEmpty(signatures).protected,
-                      signature: Array.headNonEmpty(signatures).signature,
-                  })
-              )) as Ret)
-            : ((yield* Schema.encodeEffect(General)(
-                  General.make({
-                      unverifiedPayload: encodedPayload,
-                      signatures,
-                  })
-              )) as Ret);
+        const result: (typeof Flattened)["Encoded"] | (typeof General)["Encoded"] =
+            options.privateKeys.length === 1
+                ? yield* Schema.encodeEffect(Flattened)(
+                      Flattened.make({
+                          unverifiedPayload: encodedPayload,
+                          protected: Array.headNonEmpty(signatures).protected,
+                          signature: Array.headNonEmpty(signatures).signature,
+                      })
+                  )
+                : yield* Schema.encodeEffect(General)(
+                      General.make({
+                          unverifiedPayload: encodedPayload,
+                          signatures,
+                      })
+                  );
+        // Which serialization is produced is decided by `PrivateKeys` at the
+        // type level and by `length` at runtime; the compiler cannot connect
+        // the two, so the union coerces to the computed return type.
+        return result as PrivateKeys extends [infer _] ? (typeof Flattened)["Encoded"] : (typeof General)["Encoded"];
     });
 }
 
@@ -762,14 +731,12 @@ export function Verified<
     criticalHeaders?: (CriticalHeaders & ValidateCriticalHeaderKeys<CriticalHeaders>) | undefined;
 }) {
     const verifier = verify(options);
-    const defaultPayloadSchema = Schema.String as unknown as Schema.Codec<A, string, RD1, RE1>;
-    const defaultCritical = {} as CriticalHeaders & ValidateCriticalHeaderKeys<CriticalHeaders>;
 
     const to = Schema.Struct({
         signature: Schema.Uint8ArrayFromBase64Url,
-        payload: options.payload ?? defaultPayloadSchema,
+        payload: options.payload ?? defaultPayloadCodec<A, RD1, RE1>(),
         header: JoseUnprotectedHeader.pipe(Schema.optional),
-        protected: JoseProtectedHeader.pipe(joseHeaderWithCriticals(options.criticalHeaders ?? defaultCritical)),
+        protected: JoseProtectedHeader.pipe(joseHeaderWithCriticals(options.criticalHeaders)),
     }).pipe(Schema.toType);
 
     const decode = Function.flow(
@@ -787,9 +754,9 @@ export function Verified<
     return <From extends (typeof Unsecured)["members"][number] | Schema.Decoder<(typeof Unsecured)["Type"], unknown>>(
         from: From
     ) => {
-        return (from as From).pipe(
+        return from.pipe(
             Schema.decodeTo(to, {
-                decode: SchemaGetter.transformOrFail(decode) as never,
+                decode: SchemaGetter.transformOrFail(decode),
                 encode: SchemaGetter.forbidden(() => "Will not encode"),
             })
         );
@@ -821,10 +788,12 @@ export function Signed<
     criticalHeaders?: (CriticalHeaders & ValidateCriticalHeaderKeys<CriticalHeaders>) | undefined;
 }) {
     const signer = sign<A, RE1, PrivateKeys, CriticalHeaders>(options);
-    const defaultPayloadSchema = Schema.String as unknown as Schema.Codec<A, string, RD1, RE1>;
 
+    // The runtime struct matches the computed conditional type by
+    // construction (the `criticalHeaders` field exists exactly when critical
+    // headers were supplied), which the compiler cannot verify - coerce.
     const from = Schema.Struct({
-        payload: options.payload ?? defaultPayloadSchema,
+        payload: options.payload ?? defaultPayloadCodec<A, RD1, RE1>(),
         ...(options.criticalHeaders ? { criticalHeaders: Schema.Struct(options.criticalHeaders) } : {}),
     }) as Schema.Struct<
         {
@@ -842,13 +811,21 @@ export function Signed<
         to: To
     ) => {
         return from.pipe(
-            Schema.decodeTo(to as To, {
+            Schema.decodeTo(to, {
                 encode: SchemaGetter.forbidden(() => "Will not encode"),
-                decode: SchemaGetter.transformOrFail((input: any) =>
-                    Effect.mapError(signer(input.payload, input.criticalHeaders), (error) =>
-                        Schema.isSchemaError(error) ? error.issue : error
-                    )
-                ),
+                // The getter's input is the conditional `from` type above and
+                // its output is `sign`'s conditional serialization; both are
+                // computed types the compiler cannot relate to this concrete
+                // getter, so it coerces - the body stays fully typed.
+                decode: SchemaGetter.transformOrFail(
+                    (input: {
+                        readonly payload: A;
+                        readonly criticalHeaders?: Schema.Struct.Type<CriticalHeaders> | undefined;
+                    }) =>
+                        Effect.mapError(signer(input.payload, input.criticalHeaders), (error) =>
+                            Schema.isSchemaError(error) ? error.issue : error
+                        )
+                ) as never,
             })
         );
     };

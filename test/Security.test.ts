@@ -54,7 +54,7 @@ it.live("does not crash on a key whose algorithm mismatches (fail-closed, not de
             )
         );
         const encoded = yield* Jws.sign({ privateKeys: [{ algorithm: "ES256", key: es.privateKey }] })("hi", {});
-        const jws = yield* Schema.decodeUnknownEffect(Jws.Flattened)(encoded);
+        const jws = yield* Schema.decodeEffect(Jws.Flattened)(encoded);
 
         // The rsa key comes first (would throw inside crypto.subtle.verify),
         // then the correct es key.
@@ -74,7 +74,7 @@ it.live("rejects a General JWS exceeding maxSignatures", () =>
                 { algorithm: "ES256", key: pair.privateKey },
             ],
         })("x", {});
-        const jws = yield* Schema.decodeUnknownEffect(Jws.General)(encoded);
+        const jws = yield* Schema.decodeEffect(Jws.General)(encoded);
 
         const error = yield* Effect.flip(Jws.verify({ publicKeys: [pair.publicKey], maxSignatures: 1 })(jws));
         expect(error._tag).toBe("InvalidJws");
@@ -93,7 +93,7 @@ it.live("signs critical extension headers and enforces them fail-closed on verif
             privateKeys: [{ algorithm: "ES256", key: pair.privateKey }],
             criticalHeaders: { expiresAt: Schema.Number },
         })("guarded", { expiresAt: 123 });
-        const jws = yield* Schema.decodeUnknownEffect(Jws.Flattened)(flattened);
+        const jws = yield* Schema.decodeEffect(Jws.Flattened)(flattened);
 
         // A verifier that declares the extension verifies and reads it back.
         const verified = yield* Jws.verify({
@@ -112,16 +112,26 @@ it.live("signs critical extension headers and enforces them fail-closed on verif
 
 it.live("preserves the CRT parameters of a full RSA private key", () =>
     Effect.gen(function* () {
-        const full = { kty: "RSA", n: "nnn", e: "AQAB", d: "ddd", p: "ppp", q: "qqq", dp: "dpv", dq: "dqv", qi: "qiv" };
-        const decoded = yield* Schema.decodeUnknownEffect(Jwk.RsaPrivateKey)(full);
+        const full = {
+            kty: "RSA",
+            n: "nnn",
+            e: "AQAB",
+            d: "ddd",
+            p: "ppp",
+            q: "qqq",
+            dp: "dpv",
+            dq: "dqv",
+            qi: "qiv",
+        } as const;
+        const decoded = yield* Schema.decodeEffect(Jwk.RsaPrivateKey)(full);
         expect(decoded).toStrictEqual(full);
     })
 );
 
 it.live("still decodes a d-only RSA private key", () =>
     Effect.gen(function* () {
-        const dOnly = { kty: "RSA", n: "nnn", e: "AQAB", d: "ddd" };
-        const decoded = yield* Schema.decodeUnknownEffect(Jwk.RsaPrivateKey)(dOnly);
+        const dOnly = { kty: "RSA", n: "nnn", e: "AQAB", d: "ddd" } as const;
+        const decoded = yield* Schema.decodeEffect(Jwk.RsaPrivateKey)(dOnly);
         expect(decoded).toStrictEqual(dOnly);
     })
 );

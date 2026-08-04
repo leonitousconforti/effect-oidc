@@ -62,18 +62,18 @@ export const JwsAlgorithm = Schema.Literals([
  * @category WebCrypto
  */
 export const importParameters = Match.type<(typeof JwsAlgorithm)["Type"]>().pipe(
-    Match.when("HS256", () => ({ name: "HMAC", hash: "SHA-256" }) as HmacImportParams),
-    Match.when("HS384", () => ({ name: "HMAC", hash: "SHA-384" }) as HmacImportParams),
-    Match.when("HS512", () => ({ name: "HMAC", hash: "SHA-512" }) as HmacImportParams),
-    Match.when("RS256", () => ({ name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }) as RsaHashedImportParams),
-    Match.when("RS384", () => ({ name: "RSASSA-PKCS1-v1_5", hash: "SHA-384" }) as RsaHashedImportParams),
-    Match.when("RS512", () => ({ name: "RSASSA-PKCS1-v1_5", hash: "SHA-512" }) as RsaHashedImportParams),
-    Match.when("ES256", () => ({ name: "ECDSA", namedCurve: "P-256" }) as EcKeyImportParams),
-    Match.when("ES384", () => ({ name: "ECDSA", namedCurve: "P-384" }) as EcKeyImportParams),
-    Match.when("ES512", () => ({ name: "ECDSA", namedCurve: "P-521" }) as EcKeyImportParams),
-    Match.when("PS256", () => ({ name: "RSA-PSS", hash: "SHA-256" }) as RsaHashedImportParams),
-    Match.when("PS384", () => ({ name: "RSA-PSS", hash: "SHA-384" }) as RsaHashedImportParams),
-    Match.when("PS512", () => ({ name: "RSA-PSS", hash: "SHA-512" }) as RsaHashedImportParams),
+    Match.when("HS256", (): HmacImportParams => ({ name: "HMAC", hash: "SHA-256" })),
+    Match.when("HS384", (): HmacImportParams => ({ name: "HMAC", hash: "SHA-384" })),
+    Match.when("HS512", (): HmacImportParams => ({ name: "HMAC", hash: "SHA-512" })),
+    Match.when("RS256", (): RsaHashedImportParams => ({ name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" })),
+    Match.when("RS384", (): RsaHashedImportParams => ({ name: "RSASSA-PKCS1-v1_5", hash: "SHA-384" })),
+    Match.when("RS512", (): RsaHashedImportParams => ({ name: "RSASSA-PKCS1-v1_5", hash: "SHA-512" })),
+    Match.when("ES256", (): EcKeyImportParams => ({ name: "ECDSA", namedCurve: "P-256" })),
+    Match.when("ES384", (): EcKeyImportParams => ({ name: "ECDSA", namedCurve: "P-384" })),
+    Match.when("ES512", (): EcKeyImportParams => ({ name: "ECDSA", namedCurve: "P-521" })),
+    Match.when("PS256", (): RsaHashedImportParams => ({ name: "RSA-PSS", hash: "SHA-256" })),
+    Match.when("PS384", (): RsaHashedImportParams => ({ name: "RSA-PSS", hash: "SHA-384" })),
+    Match.when("PS512", (): RsaHashedImportParams => ({ name: "RSA-PSS", hash: "SHA-512" })),
     Match.exhaustive
 );
 
@@ -85,14 +85,14 @@ export const importParameters = Match.type<(typeof JwsAlgorithm)["Type"]>().pipe
  * @category WebCrypto
  */
 export const signatureParameters = Match.type<(typeof JwsAlgorithm)["Type"]>().pipe(
-    Match.whenOr("HS256", "HS384", "HS512", () => ({ name: "HMAC" }) as AlgorithmIdentifier),
-    Match.whenOr("RS256", "RS384", "RS512", () => ({ name: "RSASSA-PKCS1-v1_5" }) as AlgorithmIdentifier),
-    Match.when("ES256", () => ({ name: "ECDSA", hash: "SHA-256" }) as EcdsaParams),
-    Match.when("ES384", () => ({ name: "ECDSA", hash: "SHA-384" }) as EcdsaParams),
-    Match.when("ES512", () => ({ name: "ECDSA", hash: "SHA-512" }) as EcdsaParams),
-    Match.when("PS256", () => ({ name: "RSA-PSS", saltLength: 32 }) as RsaPssParams),
-    Match.when("PS384", () => ({ name: "RSA-PSS", saltLength: 48 }) as RsaPssParams),
-    Match.when("PS512", () => ({ name: "RSA-PSS", saltLength: 64 }) as RsaPssParams),
+    Match.whenOr("HS256", "HS384", "HS512", (): AlgorithmIdentifier => ({ name: "HMAC" })),
+    Match.whenOr("RS256", "RS384", "RS512", (): AlgorithmIdentifier => ({ name: "RSASSA-PKCS1-v1_5" })),
+    Match.when("ES256", (): EcdsaParams => ({ name: "ECDSA", hash: "SHA-256" })),
+    Match.when("ES384", (): EcdsaParams => ({ name: "ECDSA", hash: "SHA-384" })),
+    Match.when("ES512", (): EcdsaParams => ({ name: "ECDSA", hash: "SHA-512" })),
+    Match.when("PS256", (): RsaPssParams => ({ name: "RSA-PSS", saltLength: 32 })),
+    Match.when("PS384", (): RsaPssParams => ({ name: "RSA-PSS", saltLength: 48 })),
+    Match.when("PS512", (): RsaPssParams => ({ name: "RSA-PSS", saltLength: 64 })),
     Match.exhaustive
 );
 

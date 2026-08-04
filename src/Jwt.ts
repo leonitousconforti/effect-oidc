@@ -100,6 +100,9 @@ const PayloadFromJson = Schema.fromJsonString(Schema.Record(Schema.String, Schem
 const ClaimsFromJson = Schema.fromJsonString(StandardClaimsSchema);
 
 /** @internal */
+const CompactFromString = Schema.String.pipe(Schema.decodeTo(Jws.Compact));
+
+/** @internal */
 const HeaderHintSchema = Schema.StringFromBase64Url.pipe(
     Schema.decodeTo(
         Schema.fromJsonString(
@@ -125,20 +128,31 @@ export const generateSigningKey = Effect.fnUntraced(function* () {
         crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"])
     );
     const kid = crypto.randomUUID();
-    const privateJwk = yield* Effect.promise(() => crypto.subtle.exportKey("jwk", pair.privateKey));
-    const publicJwk = yield* Effect.promise(() => crypto.subtle.exportKey("jwk", pair.publicKey));
+    const { d, x, y } = yield* Effect.promise(() => crypto.subtle.exportKey("jwk", pair.privateKey));
+    if (d === undefined || x === undefined || y === undefined) {
+        return yield* Effect.die(new Error("WebCrypto exported an EC private JWK without d/x/y"));
+    }
     return {
-        privateJwk: yield* Schema.decodeUnknownEffect(PrivateJwkSchema)({
-            ...privateJwk,
+        privateJwk: yield* Schema.decodeEffect(PrivateJwkSchema)({
+            kty: "EC",
+            crv: "P-256",
+            d,
+            x,
+            y,
             kid,
             alg: "ES256",
             use: "sig",
+            key_ops: ["sign"],
         }),
-        publicJwk: yield* Schema.decodeUnknownEffect(PublicJwkSchema)({
-            ...publicJwk,
+        publicJwk: yield* Schema.decodeEffect(PublicJwkSchema)({
+            kty: "EC",
+            crv: "P-256",
+            x,
+            y,
             kid,
             alg: "ES256",
             use: "sig",
+            key_ops: ["verify"],
         }),
     };
 });
@@ -157,7 +171,7 @@ export const sign = Effect.fnUntraced(function* (options: {
 }) {
     const algorithm = options.privateJwk.alg ?? "ES256";
     const key = yield* Effect.promise(() =>
-        crypto.subtle.importKey("jwk", options.privateJwk as JsonWebKey, Jwa.importParameters(algorithm), false, [
+        crypto.subtle.importKey("jwk", Jwk.toJsonWebKey(options.privateJwk), Jwa.importParameters(algorithm), false, [
             "sign",
         ])
     );
@@ -202,11 +216,11 @@ export const verify = Effect.fnUntraced(function* (
         readonly types?: ReadonlyArray<string> | undefined;
     }
 ) {
-    const flattened = yield* Schema.decodeUnknownEffect(Jws.Compact)(token).pipe(
+    const flattened = yield* Schema.decodeEffect(CompactFromString)(token).pipe(
         Effect.mapError(() => new JwtError({ reason: "Malformed" }))
     );
 
-    const hint = yield* Schema.decodeUnknownEffect(HeaderHintSchema)(flattened.protected).pipe(
+    const hint = yield* Schema.decodeEffect(HeaderHintSchema)(flattened.protected).pipe(
         Effect.mapError(() => new JwtError({ reason: "Malformed" }))
     );
 
@@ -227,8 +241,8 @@ export const verify = Effect.fnUntraced(function* (
     // Set must not deny service to tokens signed by the good keys.
     const imported = yield* Effect.forEach(candidates, (jwk) =>
         Effect.tryPromise(() =>
-            crypto.subtle.importKey("jwk", jwk as JsonWebKey, Jwa.importParameters(hint.alg), false, ["verify"])
-        ).pipe(Effect.catch(() => Effect.succeed(null as CryptoKey | null)))
+            crypto.subtle.importKey("jwk", Jwk.toJsonWebKey(jwk), Jwa.importParameters(hint.alg), false, ["verify"])
+        ).pipe(Effect.catch(() => Effect.succeed<CryptoKey | null>(null)))
     );
     const publicKeys = imported.filter((key): key is CryptoKey => key !== null);
     if (publicKeys.length === 0) return yield* new JwtError({ reason: "UnknownKey" });
@@ -258,6 +272,17 @@ export const verify = Effect.fnUntraced(function* (
 
     return claims;
 });
+
+/**
+ * Builds a decoder that narrows the standard claims returned by
+ * {@link verify} with a more precise, token-specific claims schema, turning
+ * the `unknown` values of the rest record into fully typed claims.
+ *
+ * @since 1.0.0
+ * @category Verification
+ */
+export const decodeClaims = <S extends Schema.Top>(schema: S) =>
+    Schema.decodeEffect(Schema.toType(StandardClaimsSchema).pipe(Schema.decodeTo(schema)));
 
 /**
  * Converts a private JWK to its public half, dropping the private scalar and

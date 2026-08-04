@@ -1,4 +1,4 @@
-import { DateTime, Effect, Schema } from "effect";
+import { DateTime, Effect } from "effect";
 
 import { expect, it } from "@effect/vitest";
 import { Jwt, Oidc } from "effect-oidc";
@@ -26,7 +26,7 @@ it.live("signs and verifies a JWT against the JWKS", () =>
             types: ["JWT"],
         });
 
-        const accessClaims = yield* Schema.decodeUnknownEffect(Oidc.AccessTokenClaimsSchema)(claims);
+        const accessClaims = yield* Jwt.decodeClaims(Oidc.AccessTokenClaimsSchema)(claims);
         expect(accessClaims.iss).toBe(issuer);
         expect(accessClaims.sub).toBe("user-123");
         expect(accessClaims.aud).toBe("my-api");
