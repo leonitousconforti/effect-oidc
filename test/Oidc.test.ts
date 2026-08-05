@@ -1,4 +1,4 @@
-import { Effect, Encoding, Option } from "effect";
+import { Effect, Encoding, Option, Schema } from "effect";
 import { HttpClient, HttpClientResponse } from "effect/unstable/http";
 
 import { expect, it } from "@effect/vitest";
@@ -116,5 +116,57 @@ it.live("issues and verifies an id token, including the nonce", () =>
 
         const wrongClient = yield* Effect.flip(Oidc.verifyIdToken({ idToken, jwks, issuer, clientId: "client-other" }));
         expect(wrongClient._tag).toBe("JwtError");
+    })
+);
+
+it.live("verifies an RS256 id token, as third-party providers sign them", () =>
+    Effect.gen(function* () {
+        // Signed with WebCrypto directly rather than Jwt.sign - the signing
+        // surface is EC-only, and a hand-rolled token is exactly what an
+        // external provider's id token is to this library anyway.
+        const pair = yield* Effect.promise(() =>
+            crypto.subtle.generateKey(
+                {
+                    name: "RSASSA-PKCS1-v1_5",
+                    modulusLength: 2048,
+                    publicExponent: new Uint8Array([1, 0, 1]),
+                    hash: "SHA-256",
+                },
+                true,
+                ["sign", "verify"]
+            )
+        );
+        const { e, n } = yield* Effect.promise(() => crypto.subtle.exportKey("jwk", pair.publicKey));
+        if (n === undefined || e === undefined) {
+            return yield* Effect.die(new Error("WebCrypto exported an RSA public JWK without n/e"));
+        }
+        const jwks = yield* Schema.decodeEffect(Jwt.JwksSchema)({
+            keys: [{ kty: "RSA", n, e, alg: "RS256", use: "sig", kid: "rsa-1" }],
+        });
+
+        const nowSeconds = Math.floor(Date.now() / 1000);
+        const encodePart = (part: Record<string, unknown>) => Encoding.encodeBase64Url(JSON.stringify(part));
+        const signingInput = `${encodePart({ alg: "RS256", typ: "JWT", kid: "rsa-1" })}.${encodePart({
+            iss: issuer,
+            sub: "user-123",
+            aud: "client-abc",
+            exp: nowSeconds + 300,
+            iat: nowSeconds,
+        })}`;
+        const signature = yield* Effect.promise(() =>
+            crypto.subtle.sign({ name: "RSASSA-PKCS1-v1_5" }, pair.privateKey, new TextEncoder().encode(signingInput))
+        );
+        const idToken = `${signingInput}.${Encoding.encodeBase64Url(new Uint8Array(signature))}`;
+
+        const claims = yield* Oidc.verifyIdToken({ idToken, jwks, issuer, clientId: "client-abc" });
+        expect(claims.iss).toBe(issuer);
+        expect(claims.sub).toBe("user-123");
+
+        // Narrowing the accepted set back down still rejects it
+        const narrowed = yield* Effect.flip(
+            Oidc.verifyIdToken({ idToken, jwks, issuer, clientId: "client-abc", algorithms: ["ES256"] })
+        );
+        expect(narrowed._tag).toBe("JwtError");
+        expect(narrowed.reason).toBe("BadAlgorithm");
     })
 );
