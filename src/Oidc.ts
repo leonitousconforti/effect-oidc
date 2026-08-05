@@ -22,6 +22,8 @@
 import { DateTime, Effect, Encoding, Option, Result, Schema } from "effect";
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http";
 
+import type * as Jwa from "./Jwa.ts";
+
 import * as Jwt from "./Jwt.ts";
 
 /**
@@ -488,6 +490,12 @@ export const revokeToken = (options: {
  * is the last step of the sign-in flow - the returned `sub` is the stable
  * account id at the provider to key local users on.
  *
+ * Accepts ES256 and RS256 signatures by default: ES256 is what this
+ * library's provider signs with, and RS256 is what the large third-party
+ * providers (Google, Discord) sign with. Pass `algorithms` to narrow or
+ * widen the accepted set - never include an HMAC algorithm, since the JWKS
+ * is public and anyone holding it could mint "signed" tokens.
+ *
  * @since 1.0.0
  * @category Client
  */
@@ -497,12 +505,13 @@ export const verifyIdToken = Effect.fnUntraced(function* (options: {
     readonly issuer: string;
     readonly clientId: string;
     readonly nonce?: string | undefined;
+    readonly algorithms?: ReadonlyArray<(typeof Jwa.JwsAlgorithm)["Type"]> | undefined;
 }) {
     const claims = yield* Jwt.verify(options.idToken, {
         jwks: options.jwks,
         issuer: options.issuer,
         audience: options.clientId,
-        algorithms: ["ES256"],
+        algorithms: options.algorithms ?? ["ES256", "RS256"],
     });
 
     const idClaims = yield* Schema.decodeEffect(IdTokenClaimsSchema)(claims).pipe(
