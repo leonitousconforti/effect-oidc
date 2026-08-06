@@ -19,7 +19,7 @@
  * @category Oidc
  */
 
-import { DateTime, Effect, Encoding, Option, Result, Schema } from "effect";
+import { DateTime, type Duration, Effect, Encoding, Option, Ref, Result, Schema } from "effect";
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http";
 
 import type * as Jwa from "./Jwa.ts";
@@ -364,6 +364,36 @@ export const fetchDiscovery = Effect.fnUntraced(function* (issuer: string) {
  */
 export const fetchJwks = (jwksUri: string) =>
     Effect.flatMap(HttpClient.get(jwksUri), HttpClientResponse.schemaBodyJson(Jwt.JwksSchema));
+
+/**
+ * Builds a cached view of an issuer's JWKS document for verifiers that run
+ * per request: the document is fetched lazily on first use (concurrent
+ * callers share one fetch), reused for `ttl` (10 minutes by default), and
+ * refreshed after that.
+ *
+ * Availability beats freshness on the failure paths. A failed refresh
+ * serves the previously fetched document, so a blip at the issuer cannot
+ * fail verifications the old keys could still answer. A failure with
+ * nothing to fall back on (the very first fetch) fails its own caller but
+ * is evicted from the cache immediately, so the next caller retries
+ * instead of inheriting the failure for the rest of the ttl.
+ *
+ * @since 1.0.0
+ * @category Client
+ */
+export const cachedJwks = (jwksUri: string, ttl: Duration.Input = "10 minutes") =>
+    Effect.flatMap(Ref.make(Option.none<Schema.Schema.Type<typeof Jwt.JwksSchema>>()), (lastGood) =>
+        fetchJwks(jwksUri).pipe(
+            Effect.tap((jwks) => Ref.set(lastGood, Option.some(jwks))),
+            Effect.catch((error) =>
+                Ref.get(lastGood).pipe(
+                    Effect.flatMap(Option.match({ onNone: () => Effect.fail(error), onSome: Effect.succeed }))
+                )
+            ),
+            Effect.cachedInvalidateWithTTL(ttl),
+            Effect.map(([cached, invalidate]) => Effect.tapError(cached, () => invalidate))
+        )
+    );
 
 /**
  * Builds the browser redirect URL that starts the code flow.

@@ -31,7 +31,8 @@ cookie transport and no opaque credential. Interactive access tokens
 (from public SPAs and confidential clients alike) and long-lived api keys
 are all just JWTs minted by the issuer - an api key is nothing more than
 a token with a long expiry - and verified statelessly: the issuer's JWKS
-is fetched once and cached, so no shared database or network hop is
+is fetched lazily and cached, or handed to `layer` as `jwks` when
+the keys are already at hand, so no shared database or network hop is
 needed per request.
 
 Revocation is the one optional piece of state: give `layer` a
@@ -73,11 +74,12 @@ Since v1.0.0
 ## layer
 
 Implements `Authorization`: bearer JWTs are verified against the
-issuer's JWKS (fetched lazily and cached for `jwksTtl`, default 10
-minutes), the optional `revoked` predicate is consulted, and each
-endpoint's accepted scopes (`OIDCScopes` annotation, or the derived
-`"<group>:<endpoint>"` / `"<group>"` default) are enforced for every
-caller. Requires an `HttpClient` for the JWKS fetch.
+issuer's JWKS (provided statically as `jwks`, or fetched lazily and
+cached for `jwksTtl`, default 10 minutes), the optional `revoked`
+predicate is consulted, and each endpoint's accepted scopes
+(`OIDCScopes` annotation, or the derived `"<group>:<endpoint>"` /
+`"<group>"` default) are enforced for every caller. Requires an
+`HttpClient` for the JWKS fetch.
 
 **Signature**
 
@@ -85,6 +87,7 @@ caller. Requires an `HttpClient` for the JWKS fetch.
 declare const layer: <RRevoked = never>(options: {
   readonly issuer: string
   readonly audience: string
+  readonly jwks?: Schema.Schema.Type<typeof Jwt.JwksSchema> | undefined
   readonly jwksTtl?: Duration.Input | undefined
   readonly algorithms?: ReadonlyArray<(typeof Jwa.JwsAlgorithm)["Type"]> | undefined
   readonly revoked?:
@@ -93,7 +96,7 @@ declare const layer: <RRevoked = never>(options: {
 }) => Layer.Layer<Authorization, never, HttpClient.HttpClient | RRevoked>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L160)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L162)
 
 Since v1.0.0
 
@@ -107,7 +110,7 @@ Since v1.0.0
 declare class Authorization
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L85)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L86)
 
 Since v1.0.0
 
@@ -133,7 +136,7 @@ declare const requireScopes: (
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L104)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L105)
 
 Since v1.0.0
 
@@ -174,7 +177,7 @@ grant just the one.
 declare class OIDCScopes
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L140)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L141)
 
 Since v1.0.0
 
@@ -192,6 +195,6 @@ token claims.
 declare class CurrentUser
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L71)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L72)
 
 Since v1.0.0

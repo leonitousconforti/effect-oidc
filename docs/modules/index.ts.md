@@ -95,7 +95,7 @@ Re-exports all named exports from the "./RelyingParty.ts" module as `RelyingPart
 export * as RelyingParty from "./RelyingParty.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L197)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L196)
 
 Since v1.0.0
 

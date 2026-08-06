@@ -26,7 +26,8 @@
  * (from public SPAs and confidential clients alike) and long-lived api keys
  * are all just JWTs minted by the issuer - an api key is nothing more than
  * a token with a long expiry - and verified statelessly: the issuer's JWKS
- * is fetched once and cached, so no shared database or network hop is
+ * is fetched lazily and cached, or handed to {@link layer} as `jwks` when
+ * the keys are already at hand, so no shared database or network hop is
  * needed per request.
  *
  * Revocation is the one optional piece of state: give {@link layer} a
@@ -49,10 +50,10 @@
  * @category ResourceServer
  */
 
-import type { HttpClient } from "effect/unstable/http";
+import type { HttpClient, HttpClientError } from "effect/unstable/http";
 import type { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi";
 
-import { Context, Duration, Effect, Layer, Option, Redacted, Ref, type Schema } from "effect";
+import { Context, type Duration, Effect, Layer, Option, Redacted, type Schema } from "effect";
 import { HttpApiError, HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi";
 
 import type * as Jwa from "./Jwa.ts";
@@ -148,11 +149,12 @@ const acceptedScopes = (group: HttpApiGroup.Top, endpoint: HttpApiEndpoint.Top):
 
 /**
  * Implements {@link Authorization}: bearer JWTs are verified against the
- * issuer's JWKS (fetched lazily and cached for `jwksTtl`, default 10
- * minutes), the optional `revoked` predicate is consulted, and each
- * endpoint's accepted scopes ({@link OIDCScopes} annotation, or the derived
- * `"<group>:<endpoint>"` / `"<group>"` default) are enforced for every
- * caller. Requires an `HttpClient` for the JWKS fetch.
+ * issuer's JWKS (provided statically as `jwks`, or fetched lazily and
+ * cached for `jwksTtl`, default 10 minutes), the optional `revoked`
+ * predicate is consulted, and each endpoint's accepted scopes
+ * ({@link OIDCScopes} annotation, or the derived `"<group>:<endpoint>"` /
+ * `"<group>"` default) are enforced for every caller. Requires an
+ * `HttpClient` for the JWKS fetch.
  *
  * @since 1.0.0
  * @category Layers
@@ -160,6 +162,13 @@ const acceptedScopes = (group: HttpApiGroup.Top, endpoint: HttpApiEndpoint.Top):
 export const layer = <RRevoked = never>(options: {
     readonly issuer: string;
     readonly audience: string;
+    /**
+     * The issuer's JWKS, provided statically instead of fetched. For a
+     * resource server living in the same process as its provider, or keys
+     * distributed out of band, this removes the network dependency on the
+     * issuer entirely; `jwksTtl` is then ignored.
+     */
+    readonly jwks?: Schema.Schema.Type<typeof Jwt.JwksSchema> | undefined;
     readonly jwksTtl?: Duration.Input | undefined;
     /**
      * Accepted signing algorithms (defaults to `["ES256"]`). Pinning the
@@ -189,29 +198,24 @@ export const layer = <RRevoked = never>(options: {
             const jwksUri = new URL("/.well-known/jwks.json", options.issuer).toString();
             const algorithms = options.algorithms ?? ["ES256"];
 
-            // Cache the last successfully fetched JWKS. On a fetch failure we
-            // serve the previous (stale) keys rather than failing every request
-            // for the whole TTL - a transient blip must not become a
-            // fleet-wide auth outage. The very first fetch still fails closed.
-            const lastGood = yield* Ref.make<Option.Option<Schema.Schema.Type<typeof Jwt.JwksSchema>>>(Option.none());
-            const cachedJwks = yield* Effect.cachedWithTTL(
-                Oidc.fetchJwks(jwksUri).pipe(
-                    Effect.provideContext(services),
-                    Effect.tap((jwks) => Ref.set(lastGood, Option.some(jwks))),
-                    Effect.catch((error) =>
-                        Ref.get(lastGood).pipe(
-                            Effect.flatMap(Option.match({ onNone: () => Effect.fail(error), onSome: Effect.succeed }))
-                        )
-                    )
-                ),
-                options.jwksTtl ?? Duration.minutes(10)
-            );
+            // Static keys skip the fetch entirely. Otherwise Oidc.cachedJwks
+            // reuses a fetched document for the TTL, serves the previous
+            // (stale) keys when a refresh fails, and evicts a failure with
+            // nothing to fall back on right away - a transient blip must not
+            // become a fleet-wide auth outage lasting the whole TTL. The very
+            // first fetch still fails closed.
+            const jwksSource: Effect.Effect<
+                Schema.Schema.Type<typeof Jwt.JwksSchema>,
+                Schema.SchemaError | HttpClientError.HttpClientError
+            > = options.jwks !== undefined
+                ? Effect.succeed(options.jwks)
+                : (yield* Oidc.cachedJwks(jwksUri, options.jwksTtl)).pipe(Effect.provideContext(services));
 
             return {
                 bearer: Effect.fnUntraced(function* (next, { credential, endpoint, group }) {
                     if (Redacted.value(credential) === "") return yield* new HttpApiError.Unauthorized();
 
-                    const jwks = yield* cachedJwks.pipe(Effect.catch(() => new HttpApiError.InternalServerError()));
+                    const jwks = yield* jwksSource.pipe(Effect.catch(() => new HttpApiError.InternalServerError()));
 
                     const claims = yield* Jwt.verify(Redacted.value(credential), {
                         jwks,

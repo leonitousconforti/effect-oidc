@@ -60,8 +60,7 @@
  * from `Oidc.fetchDiscovery`. The provider's JWKS is fetched lazily, cached
  * for `jwksTtl` (default 10 minutes), and the last good key set is served
  * through fetch failures so a transient blip at the provider does not read
- * as a failed sign in - see {@link cachedJwks}, which is also exported on
- * its own.
+ * as a failed sign in - see `Oidc.cachedJwks`.
  *
  * @since 1.0.0
  * @category RelyingParty
@@ -70,7 +69,7 @@
 import type { Duration } from "effect";
 import type { Cookies, HttpClientError } from "effect/unstable/http";
 
-import { Effect, Encoding, Option, Redacted, Ref, Schema } from "effect";
+import { Effect, Encoding, Option, Redacted, Schema } from "effect";
 import { HttpClient, HttpServerRequest, HttpServerResponse, Url } from "effect/unstable/http";
 
 import type * as Jwa from "./Jwa.ts";
@@ -162,36 +161,6 @@ export interface RelyingParty {
 }
 
 /**
- * Fetches and caches an issuer's JWKS for `ttl` (default 10 minutes),
- * serving the last good key set through fetch failures - a transient blip
- * at the provider must not read as a failed sign in for the whole TTL. The
- * very first fetch still fails closed, and a failure invalidates the cache
- * so the next verification retries immediately. The `HttpClient` is
- * captured up front, so the returned accessor requires nothing.
- *
- * @since 1.0.0
- * @category Constructors
- */
-export const cachedJwks = Effect.fnUntraced(function* (options: {
-    readonly jwksUri: string;
-    readonly ttl?: Duration.Input | undefined;
-}) {
-    const httpClient = yield* HttpClient.HttpClient;
-    const lastGood = yield* Ref.make(Option.none<Schema.Schema.Type<typeof Jwt.JwksSchema>>());
-    return yield* Oidc.fetchJwks(options.jwksUri).pipe(
-        Effect.provideService(HttpClient.HttpClient, httpClient),
-        Effect.tap((jwks) => Ref.set(lastGood, Option.some(jwks))),
-        Effect.catch((error) =>
-            Ref.get(lastGood).pipe(
-                Effect.flatMap(Option.match({ onNone: () => Effect.fail(error), onSome: Effect.succeed }))
-            )
-        ),
-        Effect.cachedInvalidateWithTTL(options.ttl ?? "10 minutes"),
-        Effect.map(([cached, invalidate]) => Effect.tapError(cached, () => invalidate))
-    );
-});
-
-/**
  * Realizes a provider registration into a {@link RelyingParty}. The
  * `HttpClient` is captured up front - both the JWKS cache and the code
  * exchange use it - so the realized value requires only the incoming
@@ -236,7 +205,9 @@ export const make = Effect.fnUntraced(function* (options: {
         | undefined;
 }) {
     const httpClient = yield* HttpClient.HttpClient;
-    const jwks = yield* cachedJwks({ jwksUri: options.jwksUri, ttl: options.jwksTtl });
+    const jwks = (yield* Oidc.cachedJwks(options.jwksUri, options.jwksTtl)).pipe(
+        Effect.provideService(HttpClient.HttpClient, httpClient)
+    );
 
     const clientSecret =
         typeof options.clientSecret === "string"

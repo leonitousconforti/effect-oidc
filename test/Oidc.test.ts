@@ -170,3 +170,70 @@ it.live("verifies an RS256 id token, as third-party providers sign them", () =>
         expect(narrowed.reason).toBe("BadAlgorithm");
     })
 );
+
+it.live("cachedJwks fetches once and reuses the document within the ttl", () =>
+    Effect.gen(function* () {
+        const { publicJwk } = yield* Jwt.generateSigningKey();
+        let fetches = 0;
+        const stub = HttpClient.make((request) => {
+            fetches += 1;
+            return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json({ keys: [publicJwk] })));
+        });
+
+        const jwks = yield* Oidc.cachedJwks("https://id.example.com/.well-known/jwks.json");
+        const first = yield* jwks.pipe(Effect.provideService(HttpClient.HttpClient, stub));
+        const second = yield* jwks.pipe(Effect.provideService(HttpClient.HttpClient, stub));
+        expect(fetches).toBe(1);
+        expect(second).toStrictEqual(first);
+    })
+);
+
+it.live("cachedJwks serves the last good document when a refresh fails", () =>
+    Effect.gen(function* () {
+        const { publicJwk } = yield* Jwt.generateSigningKey();
+        let healthy = true;
+        let fetches = 0;
+        const stub = HttpClient.make((request) => {
+            fetches += 1;
+            return Effect.succeed(
+                HttpClientResponse.fromWeb(request, healthy ? Response.json({ keys: [publicJwk] }) : Response.json({}))
+            );
+        });
+
+        const jwks = yield* Oidc.cachedJwks("https://id.example.com/.well-known/jwks.json", "10 millis");
+        const first = yield* jwks.pipe(Effect.provideService(HttpClient.HttpClient, stub));
+
+        // Past the ttl the refresh runs and fails; the stale document answers.
+        healthy = false;
+        yield* Effect.sleep("50 millis");
+        const stale = yield* jwks.pipe(Effect.provideService(HttpClient.HttpClient, stub));
+        expect(fetches).toBe(2);
+        expect(stale).toStrictEqual(first);
+    })
+);
+
+it.live("cachedJwks does not cache a failure for the ttl, the next caller retries", () =>
+    Effect.gen(function* () {
+        const { publicJwk } = yield* Jwt.generateSigningKey();
+        let healthy = false;
+        let fetches = 0;
+        const stub = HttpClient.make((request) => {
+            fetches += 1;
+            return Effect.succeed(
+                HttpClientResponse.fromWeb(request, healthy ? Response.json({ keys: [publicJwk] }) : Response.json({}))
+            );
+        });
+
+        // The very first fetch fails closed, for its caller only.
+        const jwks = yield* Oidc.cachedJwks("https://id.example.com/.well-known/jwks.json");
+        yield* Effect.flip(jwks.pipe(Effect.provideService(HttpClient.HttpClient, stub)));
+        expect(fetches).toBe(1);
+
+        // The endpoint recovers: the next caller succeeds immediately, with
+        // no ttl to wait out.
+        healthy = true;
+        const document = yield* jwks.pipe(Effect.provideService(HttpClient.HttpClient, stub));
+        expect(fetches).toBe(2);
+        expect(document).toStrictEqual({ keys: [publicJwk] });
+    })
+);
