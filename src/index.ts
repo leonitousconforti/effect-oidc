@@ -188,8 +188,7 @@ export * as Oidc from "./Oidc.ts"
  * from `Oidc.fetchDiscovery`. The provider's JWKS is fetched lazily, cached
  * for `jwksTtl` (default 10 minutes), and the last good key set is served
  * through fetch failures so a transient blip at the provider does not read
- * as a failed sign in - see {@link cachedJwks}, which is also exported on
- * its own.
+ * as a failed sign in - see `Oidc.cachedJwks`.
  *
  * @since 1.0.0
  * @category RelyingParty
