@@ -15,11 +15,11 @@ allowBuilds:
     msgpackr-extract: true
 
 overrides:
-    "@effect/docgen>typescript": "6.0.3"
-    "madge>typescript": "6.0.3"
+    "@effect/docgen>typescript": "7.0.2"
+    "madge>typescript": "7.0.2"
 
 peerDependencyRules:
     allowedVersions:
-        typescript: "6.0.3"
+        typescript: "7.0.2"
         # babel-plugin-annotate-pure-calls still declares a `@babel/core: ^7.0.0` peer.
         "@babel/core": "8.0.1"
