@@ -35,6 +35,8 @@ Since v1.0.0
   - [Jwt (namespace export)](#jwt-namespace-export)
 - [Oidc](#oidc)
   - [Oidc (namespace export)](#oidc-namespace-export)
+- [RelyingParty](#relyingparty)
+  - [RelyingParty (namespace export)](#relyingparty-namespace-export)
 - [ResourceServer](#resourceserver)
   - [ResourceServer (namespace export)](#resourceserver-namespace-export)
 - [utils](#utils)
@@ -81,6 +83,22 @@ export * as Oidc from "./Oidc.ts"
 
 Since v1.0.0
 
+# RelyingParty
+
+## RelyingParty (namespace export)
+
+Re-exports all named exports from the "./RelyingParty.ts" module as `RelyingParty`.
+
+**Signature**
+
+```ts
+export * as RelyingParty from "./RelyingParty.ts"
+```
+
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L197)
+
+Since v1.0.0
+
 # ResourceServer
 
 ## ResourceServer (namespace export)
@@ -93,7 +111,7 @@ Re-exports all named exports from the "./ResourceServer.ts" module as `ResourceS
 export * as ResourceServer from "./ResourceServer.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L179)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L249)
 
 Since v1.0.0
 
