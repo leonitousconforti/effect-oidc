@@ -224,7 +224,8 @@ export * as RelyingParty from "./RelyingParty.ts"
  * (from public SPAs and confidential clients alike) and long-lived api keys
  * are all just JWTs minted by the issuer - an api key is nothing more than
  * a token with a long expiry - and verified statelessly: the issuer's JWKS
- * is fetched once and cached, so no shared database or network hop is
+ * is fetched lazily and cached, or handed to {@link layer} as `jwks` when
+ * the keys are already at hand, so no shared database or network hop is
  * needed per request.
  *
  * Revocation is the one optional piece of state: give {@link layer} a
