@@ -30,6 +30,7 @@ Since v1.0.0
 
 - [Client](#client)
   - [authorizationRequest](#authorizationrequest)
+  - [cachedJwks](#cachedjwks)
   - [exchangeAuthorizationCode](#exchangeauthorizationcode)
   - [exchangeClientCredentials](#exchangeclientcredentials)
   - [fetchDiscovery](#fetchdiscovery)
@@ -75,7 +76,236 @@ declare const authorizationRequest: (options: {
 }) => HttpClientRequest.HttpClientRequest
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L374)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L404)
+
+Since v1.0.0
+
+## cachedJwks
+
+Builds a cached view of an issuer's JWKS document for verifiers that run
+per request: the document is fetched lazily on first use (concurrent
+callers share one fetch), reused for `ttl` (10 minutes by default), and
+refreshed after that.
+
+Availability beats freshness on the failure paths. A failed refresh
+serves the previously fetched document, so a blip at the issuer cannot
+fail verifications the old keys could still answer. A failure with
+nothing to fall back on (the very first fetch) fails its own caller but
+is evicted from the cache immediately, so the next caller retries
+instead of inheriting the failure for the rest of the ttl.
+
+**Signature**
+
+```ts
+declare const cachedJwks: (
+  jwksUri: string,
+  ttl?: Duration.Input
+) => Effect.Effect<
+  Effect.Effect<
+    {
+      readonly keys: ReadonlyArray<
+        | {
+            readonly kty: "EC"
+            readonly crv: "P-256" | "P-384" | "P-521"
+            readonly x: string
+            readonly y: string
+            readonly d: string
+            readonly use?: "sig" | "enc" | undefined
+            readonly key_ops?:
+              | ReadonlyArray<
+                  "sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits"
+                >
+              | undefined
+            readonly alg?:
+              | "HS256"
+              | "HS384"
+              | "HS512"
+              | "RS256"
+              | "RS384"
+              | "RS512"
+              | "ES256"
+              | "ES384"
+              | "ES512"
+              | "PS256"
+              | "PS384"
+              | "PS512"
+              | undefined
+            readonly kid?: string | undefined
+            readonly x5u?: string | undefined
+            readonly x5c?: ReadonlyArray<string> | undefined
+            readonly x5t?: string | undefined
+            readonly "x5t#S256"?: string | undefined
+          }
+        | {
+            readonly kty: "EC"
+            readonly crv: "P-256" | "P-384" | "P-521"
+            readonly x: string
+            readonly y: string
+            readonly use?: "sig" | "enc" | undefined
+            readonly key_ops?:
+              | ReadonlyArray<
+                  "sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits"
+                >
+              | undefined
+            readonly alg?:
+              | "HS256"
+              | "HS384"
+              | "HS512"
+              | "RS256"
+              | "RS384"
+              | "RS512"
+              | "ES256"
+              | "ES384"
+              | "ES512"
+              | "PS256"
+              | "PS384"
+              | "PS512"
+              | undefined
+            readonly kid?: string | undefined
+            readonly x5u?: string | undefined
+            readonly x5c?: ReadonlyArray<string> | undefined
+            readonly x5t?: string | undefined
+            readonly "x5t#S256"?: string | undefined
+          }
+        | {
+            readonly kty: "RSA"
+            readonly d: string
+            readonly n: string
+            readonly e: string
+            readonly p: string
+            readonly q: string
+            readonly dp: string
+            readonly dq: string
+            readonly qi: string
+            readonly use?: "sig" | "enc" | undefined
+            readonly key_ops?:
+              | ReadonlyArray<
+                  "sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits"
+                >
+              | undefined
+            readonly alg?:
+              | "HS256"
+              | "HS384"
+              | "HS512"
+              | "RS256"
+              | "RS384"
+              | "RS512"
+              | "ES256"
+              | "ES384"
+              | "ES512"
+              | "PS256"
+              | "PS384"
+              | "PS512"
+              | undefined
+            readonly kid?: string | undefined
+            readonly x5u?: string | undefined
+            readonly x5c?: ReadonlyArray<string> | undefined
+            readonly x5t?: string | undefined
+            readonly "x5t#S256"?: string | undefined
+            readonly oth?: ReadonlyArray<{ readonly r: string; readonly d: string; readonly t: string }> | undefined
+          }
+        | {
+            readonly kty: "RSA"
+            readonly d: string
+            readonly n: string
+            readonly e: string
+            readonly use?: "sig" | "enc" | undefined
+            readonly key_ops?:
+              | ReadonlyArray<
+                  "sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits"
+                >
+              | undefined
+            readonly alg?:
+              | "HS256"
+              | "HS384"
+              | "HS512"
+              | "RS256"
+              | "RS384"
+              | "RS512"
+              | "ES256"
+              | "ES384"
+              | "ES512"
+              | "PS256"
+              | "PS384"
+              | "PS512"
+              | undefined
+            readonly kid?: string | undefined
+            readonly x5u?: string | undefined
+            readonly x5c?: ReadonlyArray<string> | undefined
+            readonly x5t?: string | undefined
+            readonly "x5t#S256"?: string | undefined
+            readonly oth?: ReadonlyArray<{ readonly r: string; readonly d: string; readonly t: string }> | undefined
+          }
+        | {
+            readonly kty: "RSA"
+            readonly n: string
+            readonly e: string
+            readonly use?: "sig" | "enc" | undefined
+            readonly key_ops?:
+              | ReadonlyArray<
+                  "sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits"
+                >
+              | undefined
+            readonly alg?:
+              | "HS256"
+              | "HS384"
+              | "HS512"
+              | "RS256"
+              | "RS384"
+              | "RS512"
+              | "ES256"
+              | "ES384"
+              | "ES512"
+              | "PS256"
+              | "PS384"
+              | "PS512"
+              | undefined
+            readonly kid?: string | undefined
+            readonly x5u?: string | undefined
+            readonly x5c?: ReadonlyArray<string> | undefined
+            readonly x5t?: string | undefined
+            readonly "x5t#S256"?: string | undefined
+          }
+        | {
+            readonly kty: "oct"
+            readonly k: string
+            readonly use?: "sig" | "enc" | undefined
+            readonly key_ops?:
+              | ReadonlyArray<
+                  "sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits"
+                >
+              | undefined
+            readonly alg?:
+              | "HS256"
+              | "HS384"
+              | "HS512"
+              | "RS256"
+              | "RS384"
+              | "RS512"
+              | "ES256"
+              | "ES384"
+              | "ES512"
+              | "PS256"
+              | "PS384"
+              | "PS512"
+              | undefined
+            readonly kid?: string | undefined
+            readonly x5u?: string | undefined
+            readonly x5c?: ReadonlyArray<string> | undefined
+            readonly x5t?: string | undefined
+            readonly "x5t#S256"?: string | undefined
+          }
+      >
+    },
+    Schema.SchemaError | HttpClientError,
+    HttpClient.HttpClient
+  >,
+  never,
+  never
+>
+```
+
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L384)
 
 Since v1.0.0
 
@@ -108,7 +338,7 @@ declare const exchangeAuthorizationCode: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L402)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L432)
 
 Since v1.0.0
 
@@ -141,7 +371,7 @@ declare const exchangeClientCredentials: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L432)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L462)
 
 Since v1.0.0
 
@@ -424,7 +654,7 @@ declare const revokeToken: (options: {
 }) => Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError, HttpClient.HttpClient>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L463)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L493)
 
 Since v1.0.0
 
@@ -470,7 +700,7 @@ declare const verifyIdToken: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L502)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L532)
 
 Since v1.0.0
 

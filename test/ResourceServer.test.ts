@@ -23,22 +23,36 @@ const notes = HttpApiGroup.make("notes").add(listNotes, createNote);
  * the JWKS, plus helpers to mint tokens for it and to invoke the bearer
  * security scheme exactly as the `HttpApi` builder would.
  */
-const makeHarness = Effect.fnUntraced(function* (layerOptions?: {
+const makeHarness = Effect.fnUntraced(function* (harnessOptions?: {
     readonly revoked?: (
         claims: Schema.Schema.Type<typeof Oidc.AccessTokenClaimsSchema>
     ) => Effect.Effect<boolean, unknown>;
+    /** Hand the harness JWKS to the layer statically instead of serving it over the stub client. */
+    readonly staticJwks?: boolean;
+    /** Start the stub JWKS endpoint unhealthy, answering malformed documents until `setHealthy(true)`. */
+    readonly startUnhealthy?: boolean;
 }) {
     const { privateJwk, publicJwk } = yield* Jwt.generateSigningKey();
 
+    let healthy = harnessOptions?.startUnhealthy !== true;
+    let jwksFetches = 0;
     const StubJwksClient = Layer.succeed(
         HttpClient.HttpClient,
-        HttpClient.make((request) =>
-            Effect.succeed(HttpClientResponse.fromWeb(request, Response.json({ keys: [publicJwk] })))
-        )
+        HttpClient.make((request) => {
+            jwksFetches += 1;
+            return Effect.succeed(
+                HttpClientResponse.fromWeb(request, healthy ? Response.json({ keys: [publicJwk] }) : Response.json({}))
+            );
+        })
     );
 
     const context = yield* Layer.build(
-        ResourceServer.layer({ issuer, audience, ...layerOptions }).pipe(Layer.provide(StubJwksClient))
+        ResourceServer.layer({
+            issuer,
+            audience,
+            ...(harnessOptions?.staticJwks === true ? { jwks: { keys: [publicJwk] } } : {}),
+            ...(harnessOptions?.revoked === undefined ? {} : { revoked: harnessOptions.revoked }),
+        }).pipe(Layer.provide(StubJwksClient))
     );
     const authorization = Context.get(context, ResourceServer.Authorization);
 
@@ -103,7 +117,14 @@ const makeHarness = Effect.fnUntraced(function* (layerOptions?: {
             );
     };
 
-    return { issueToken, call };
+    return {
+        issueToken,
+        call,
+        jwksFetches: () => jwksFetches,
+        setHealthy: (value: boolean) => {
+            healthy = value;
+        },
+    };
 });
 
 it.live("accepts the endpoint's derived scope by default", () =>
@@ -287,4 +308,34 @@ it.live("requireScopes guards individual handlers against the granted scopes", (
         );
         expect(forbidden._tag).toBe("Forbidden");
     })
+);
+
+it.live("verifies against statically provided jwks without ever fetching", () =>
+    Effect.gen(function* () {
+        // The stub endpoint only answers malformed documents, so any fetch
+        // attempt would fail: static keys must make it unreachable.
+        const harness = yield* makeHarness({ staticJwks: true, startUnhealthy: true });
+
+        const token = yield* harness.issueToken("notes");
+        const user = yield* harness.call(token, listNotes);
+        expect(user.sub).toBe("user-123");
+        expect(harness.jwksFetches()).toBe(0);
+    }).pipe(Effect.scoped)
+);
+
+it.live("retries the jwks fetch after a failed first fetch instead of caching the failure", () =>
+    Effect.gen(function* () {
+        const harness = yield* makeHarness({ startUnhealthy: true });
+
+        const token = yield* harness.issueToken("notes");
+        const failure = yield* Effect.flip(harness.call(token, listNotes));
+        expect(failure._tag).toBe("InternalServerError");
+
+        // The endpoint recovers and the very next request succeeds, with no
+        // ttl to wait out before the failure leaves the cache.
+        harness.setHealthy(true);
+        const user = yield* harness.call(token, listNotes);
+        expect(user.sub).toBe("user-123");
+        expect(harness.jwksFetches()).toBe(2);
+    }).pipe(Effect.scoped)
 );
