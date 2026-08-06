@@ -127,6 +127,76 @@ export * as Jwt from "./Jwt.ts"
 export * as Oidc from "./Oidc.ts"
 
 /**
+ * The server side of "Sign in with ..." for web apps: an OIDC relying party
+ * that owns the browser-facing half of the authorization code + PKCE flow.
+ * {@link make} realizes a provider registration into two route handlers'
+ * worth of logic: `beginAuthorization` answers the login route with a
+ * redirect to the provider and drops the short-lived transaction cookies
+ * (state, PKCE verifier, and an optional opaque payload such as a return-to
+ * path), and `completeAuthorization` answers the callback route by
+ * validating the echoed state against those cookies, exchanging the code,
+ * and verifying the id token - handing back the claims for the app to turn
+ * into its own session:
+ *
+ * ```ts
+ * import { Effect, Layer, Option } from "effect"
+ * import { HttpRouter, HttpServerResponse } from "effect/unstable/http"
+ * import { RelyingParty } from "effect-oidc"
+ *
+ * const GoogleSignIn = Effect.gen(function* () {
+ *     const google = yield* RelyingParty.make({
+ *         issuer: "https://accounts.google.com",
+ *         authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+ *         tokenEndpoint: "https://oauth2.googleapis.com/token",
+ *         jwksUri: "https://www.googleapis.com/oauth2/v3/certs",
+ *         clientId: "my-client-id",
+ *         clientSecret: "my-client-secret",
+ *         redirectUri: "https://app.example.com/auth/google/callback",
+ *         scopes: ["openid", "email", "profile"],
+ *         cookies: { prefix: "google_oauth" },
+ *     })
+ *
+ *     const login = google
+ *         .beginAuthorization({ payload: "/dashboard" })
+ *         .pipe(Effect.catch(() => Effect.succeed(HttpServerResponse.redirect("/login?error=start_failed"))))
+ *
+ *     const callback = google.completeAuthorization.pipe(
+ *         Effect.map(({ claims, payload }) =>
+ *             // Create the local session for claims.sub here, then land the
+ *             // visitor back where they started.
+ *             HttpServerResponse.redirect(Option.getOrElse(payload, () => `/welcome/${claims.sub}`))
+ *         ),
+ *         Effect.catch((error) => Effect.succeed(HttpServerResponse.redirect(`/login?error=${error.reason}`))),
+ *         Effect.flatMap(google.expireTransactionCookies),
+ *         Effect.orDie
+ *     )
+ *
+ *     return Layer.mergeAll(
+ *         HttpRouter.add("GET", "/auth/google/login", login),
+ *         HttpRouter.add("GET", "/auth/google/callback", callback)
+ *     )
+ * }).pipe(Layer.unwrap)
+ * ```
+ *
+ * The module deliberately stops at verified claims: creating the local
+ * account or session, deciding where errors redirect, and setting the
+ * session cookie are the app's business. On both the success and the
+ * failure response, pass the response through `expireTransactionCookies` so
+ * the spent state, verifier, and payload cookies do not outlive the flow.
+ *
+ * The endpoints can be pinned statically (as above) or resolved at startup
+ * from `Oidc.fetchDiscovery`. The provider's JWKS is fetched lazily, cached
+ * for `jwksTtl` (default 10 minutes), and the last good key set is served
+ * through fetch failures so a transient blip at the provider does not read
+ * as a failed sign in - see {@link cachedJwks}, which is also exported on
+ * its own.
+ *
+ * @since 1.0.0
+ * @category RelyingParty
+ */
+export * as RelyingParty from "./RelyingParty.ts"
+
+/**
  * Drop-in bearer authentication for `HttpApi` services. Any service becomes
  * a resource server of an OIDC provider by adding the {@link Authorization}
  * middleware to its api groups and providing {@link layer} with the issuer
