@@ -19,18 +19,7 @@
  * @see https://www.rfc-editor.org/rfc/rfc7518 - JSON Web Algorithms (JWA)
  */
 
-import {
-    Array,
-    type Brand,
-    Data,
-    Effect,
-    Function,
-    Option,
-    Schema,
-    SchemaGetter,
-    SchemaIssue,
-    type Struct,
-} from "effect";
+import { Array, type Brand, Data, Effect, Function, Schema, SchemaGetter, SchemaIssue, type Struct } from "effect";
 import { VariantSchema } from "effect/unstable/schema";
 
 import { importParameters, JwsAlgorithm, signatureParameters } from "./Jwa.ts";
@@ -390,7 +379,7 @@ export class Compact extends Schema.Opaque<Compact, Brand.Brand<"Compact">>()(
                     header === undefined
                         ? Effect.succeed([protectedHeader, ".", payload, ".", signature] as const)
                         : Effect.fail(
-                              new SchemaIssue.InvalidValue(Option.none(), {
+                              new SchemaIssue.InvalidValue({
                                   message: "Compact serialization does not support unprotected headers",
                               })
                           )
@@ -744,7 +733,7 @@ export function Verified<
         Effect.mapError((error) => (Schema.isSchemaError(error) ? error.issue : error)),
         Effect.catchTag("InvalidJws", (_error) =>
             Effect.fail(
-                new SchemaIssue.Forbidden(Option.none(), {
+                new SchemaIssue.Forbidden({
                     message: "Invalid JWS",
                 })
             )
