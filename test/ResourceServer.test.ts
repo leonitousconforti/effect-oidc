@@ -99,7 +99,9 @@ const makeHarness = Effect.fnUntraced(function* (harnessOptions?: {
         return authorization
             .bearer(next, {
                 credential: Redacted.make(token),
+                // oxlint-disable-next-line typescript/no-unsafe-type-assertion
                 endpoint: endpoint as HttpApiEndpoint.Top,
+                // oxlint-disable-next-line typescript/no-unsafe-type-assertion
                 group: (callOptions?.group ?? notes) as HttpApiGroup.Top,
             })
             .pipe(

@@ -29,7 +29,7 @@
  *     pnpm tsx examples/02-oidc-provider.ts
  */
 
-import { Context, DateTime, Effect, Encoding, Layer, Option, type Schema } from "effect";
+import { Context, DateTime, Effect, Encoding, Function, Layer, Option, type Schema } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/unstable/http";
 
 import { createServer } from "node:http";
@@ -400,6 +400,8 @@ const TokenRoute = HttpRouter.add(
                     request.scope ?? registeredService.scopes.join(" "),
                     httpRequest.headers.authorization
                 );
+            default:
+                return Function.absurd<never>(request);
         }
     })
 );

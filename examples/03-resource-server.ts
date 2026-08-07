@@ -131,10 +131,8 @@ const AuthorizationLive = Layer.unwrap(
         return ResourceServer.layer({
             issuer,
             audience,
-            revoked: (claims) =>
-                claims.jti === undefined
-                    ? Effect.succeed(false)
-                    : Effect.map(revokedJtis, (jtis) => jtis.has(claims.jti as string)),
+            revoked: ({ jti }) =>
+                jti === undefined ? Effect.succeed(false) : Effect.map(revokedJtis, (jtis) => jtis.has(jti)),
         });
     })
 ).pipe(Layer.provide(NodeHttpClient.layerUndici));

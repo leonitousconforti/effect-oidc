@@ -15,7 +15,7 @@
  * @see https://www.rfc-editor.org/rfc/rfc7518#section-6 - Cryptographic Algorithms for Keys
  */
 
-import { Schema } from "effect";
+import { Function, Schema } from "effect";
 
 import { JwsAlgorithm } from "./Jwa.ts";
 
@@ -384,6 +384,8 @@ export const isCompatibleWith = (alg: (typeof JwsAlgorithm)["Type"], jwk: (typeo
         case "HS384":
         case "HS512":
             return jwk.kty === "oct";
+        default:
+            return Function.absurd(alg);
     }
 };
 
@@ -434,5 +436,7 @@ export const toJsonWebKey = (jwk: (typeof Jwk)["Type"]): JsonWebKey => {
             };
         case "oct":
             return { kty: jwk.kty, k: jwk.k, ...common };
+        default:
+            return Function.absurd(jwk);
     }
 };

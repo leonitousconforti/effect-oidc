@@ -224,7 +224,7 @@ export const make = Effect.fnUntraced(function* (options: {
     const payloadCookieName = cookieName(`${prefix}_payload`);
 
     const setOptions = {
-        maxAge: options.cookies?.maxAge ?? ("10 minutes" as Duration.Input),
+        maxAge: options.cookies?.maxAge ?? "10 minutes",
         httpOnly: true,
         path: "/",
         secure,
