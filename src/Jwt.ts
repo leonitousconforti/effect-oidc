@@ -75,7 +75,7 @@ export const StandardClaimsSchema = Schema.StructWithRest(RegisteredClaimsSchema
  * @since 1.0.0
  * @category Errors
  */
-export class JwtError extends Schema.ErrorClass<JwtError>("effect-oidc/JwtError")({
+export class JwtError extends Schema.Error<JwtError>("effect-oidc/JwtError")({
     _tag: Schema.tag("JwtError"),
     reason: Schema.Literals([
         "Malformed",

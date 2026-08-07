@@ -87,7 +87,7 @@ import * as Oidc from "./Oidc.ts";
  * @since 1.0.0
  * @category Errors
  */
-export class CallbackError extends Schema.ErrorClass<CallbackError>("effect-oidc/CallbackError")({
+export class CallbackError extends Schema.Error<CallbackError>("effect-oidc/CallbackError")({
     _tag: Schema.tag("CallbackError"),
     reason: Schema.Literals([
         "InvalidCallback",
