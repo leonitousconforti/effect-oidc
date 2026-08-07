@@ -157,7 +157,7 @@ export const IdTokenClaimsSchema = Schema.Struct({
  * @since 1.0.0
  * @category Errors
  */
-export class DiscoveryError extends Schema.ErrorClass<DiscoveryError>("effect-oidc/DiscoveryError")({
+export class DiscoveryError extends Schema.Error<DiscoveryError>("effect-oidc/DiscoveryError")({
     _tag: Schema.tag("DiscoveryError"),
     reason: Schema.Literals(["IssuerMismatch", "InvalidEndpoint"]),
 }) {}
