@@ -229,6 +229,9 @@ export const layer = <RRevoked = never>(options: {
                     );
 
                     if (options.revoked !== undefined) {
+                        // `revoked` is a caller-supplied predicate, so its error channel is intentionally
+                        // open; every failure is folded into InternalServerError immediately below.
+                        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
                         const revoked = yield* options.revoked(accessClaims).pipe(
                             Effect.provideContext(services),
                             Effect.catch(() => new HttpApiError.InternalServerError())

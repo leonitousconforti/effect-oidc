@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Function } from "effect";
 
 import { expect, it } from "@effect/vitest";
 import { type Jwa, Jwe } from "effect-oidc";
@@ -26,6 +26,8 @@ const cekBytesFor = (enc: (typeof Jwa.JweEncryption)["Type"]): number => {
             return 48;
         case "A256CBC-HS512":
             return 64;
+        default:
+            return Function.absurd(enc);
     }
 };
 
@@ -95,6 +97,8 @@ const keysFor = (alg: (typeof Jwa.JweAlgorithm)["Type"], enc: (typeof Jwa.JweEnc
                 const key = yield* importPbkdf2(new TextEncoder().encode("correct horse battery staple"));
                 return { encryptKey: key, decryptKey: key };
             }
+            default:
+                return Function.absurd<never>(alg);
         }
     });
 

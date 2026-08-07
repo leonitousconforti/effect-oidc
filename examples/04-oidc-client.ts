@@ -31,6 +31,9 @@ const redirectUri = "http://localhost:3000/callback";
 
 class FlowError extends Data.TaggedError("FlowError")<{ readonly message: string }> {}
 
+// The `FlowError` guards below exit via a never-typed effect; the generator's normal path
+// runs to the end and returns nothing.
+// oxlint-disable-next-line typescript/consistent-return
 const program = Effect.gen(function* () {
     // 1. Discovery. `Oidc.fetchDiscovery` is this fetch plus the mandatory
     //    https/same-origin endpoint validation - use it against any real

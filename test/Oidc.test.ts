@@ -120,6 +120,9 @@ it.live("issues and verifies an id token, including the nonce", () =>
 );
 
 it.live("verifies an RS256 id token, as third-party providers sign them", () =>
+    // The `n`/`e` guard below exits via `Effect.die`, which is typed `never`; the assertions at
+    // the end of the generator are the normal path and return nothing.
+    // oxlint-disable-next-line typescript/consistent-return
     Effect.gen(function* () {
         // Signed with WebCrypto directly rather than Jwt.sign - the signing
         // surface is EC-only, and a hand-rolled token is exactly what an

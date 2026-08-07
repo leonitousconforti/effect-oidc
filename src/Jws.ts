@@ -225,6 +225,8 @@ const joseHeaderWithCriticals = <
 
     return <
         OldFields extends InputConstraint,
+        // `NewCritical` is the computed `crit` shape that `NewFields` below is built from.
+        // oxlint-disable-next-line typescript/no-unnecessary-type-parameters
         NewCritical extends (KeyLiterals extends never
             ? OldFields["crit"]
             : OldFields["crit"] extends Schema.$Array<Schema.Union<infer Elements>>
@@ -240,6 +242,7 @@ const joseHeaderWithCriticals = <
         // type-level formula exactly: every critical header key becomes a
         // field, and `crit` becomes the array of all registered key literals.
         const entries = Object.entries(criticalHeaders ?? {});
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
         if (entries.length === 0) return self as never;
 
         const crit: InputConstraint["crit"] = self.fields.crit;
@@ -262,6 +265,7 @@ const joseHeaderWithCriticals = <
             ),
         };
 
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
         return self.pipe(Schema.fieldsAssign(newFields)) as never;
     };
 };
@@ -410,6 +414,7 @@ export const Unsecured = Schema.Union([General, Flattened, Compact]);
  *
  * @internal
  */
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion
 const defaultPayloadCodec = <A, RD, RE>(): Schema.Codec<A, string, RD, RE> => Schema.String as never;
 
 /**
@@ -613,7 +618,7 @@ export function sign<
     criticalHeaders?: (CriticalHeaders & ValidateCriticalHeaderKeys<CriticalHeaders>) | undefined;
 }): (
     payload: A,
-    criticalHeaders?: Schema.Struct.Type<CriticalHeaders> | undefined
+    criticalHeaders?: Schema.Struct.Type<CriticalHeaders>
 ) => Effect.Effect<
     PrivateKeys extends [infer _] ? (typeof Flattened)["Encoded"] : (typeof General)["Encoded"],
     Schema.SchemaError,
@@ -650,6 +655,7 @@ export function sign<
                 // The header schema's input type is computed at the type level
                 // from `CriticalHeaders`; this object matches it by the same
                 // construction, which the compiler cannot verify - coerce.
+                // oxlint-disable-next-line typescript/no-unsafe-type-assertion
                 const protectedHeader = yield* encodeProtected({
                     alg: algorithm,
                     ...header,
@@ -670,7 +676,7 @@ export function sign<
             })
         );
 
-    return Effect.fnUntraced(function* (payload: A, criticalHeaders?: Schema.Struct.Type<CriticalHeaders> | undefined) {
+    return Effect.fnUntraced(function* (payload: A, criticalHeaders?: Schema.Struct.Type<CriticalHeaders>) {
         const encodedPayload = yield* encodePayload(payload);
         const signatures = yield* signMany(encodedPayload, criticalHeaders, options.privateKeys);
         const result: (typeof Flattened)["Encoded"] | (typeof General)["Encoded"] =
@@ -691,6 +697,7 @@ export function sign<
         // Which serialization is produced is decided by `PrivateKeys` at the
         // type level and by `length` at runtime; the compiler cannot connect
         // the two, so the union coerces to the computed return type.
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
         return result as PrivateKeys extends [infer _] ? (typeof Flattened)["Encoded"] : (typeof General)["Encoded"];
     });
 }
@@ -740,6 +747,8 @@ export function Verified<
         )
     );
 
+    // `From` is what preserves the caller's decoder type through `pipe`.
+    // oxlint-disable-next-line typescript/no-unnecessary-type-parameters
     return <From extends (typeof Unsecured)["members"][number] | Schema.Decoder<(typeof Unsecured)["Type"], unknown>>(
         from: From
     ) => {
@@ -763,6 +772,8 @@ export function Signed<
     A = string,
     RD1 = never,
     RE1 = never,
+    // `PrivateKeys` drives the conditional return type of the returned codec.
+    // oxlint-disable-next-line typescript/no-unnecessary-type-parameters
     PrivateKeys extends Array.NonEmptyReadonlyArray<{
         algorithm: (typeof JwsAlgorithm)["Type"];
         key: CryptoKey;
@@ -781,6 +792,7 @@ export function Signed<
     // The runtime struct matches the computed conditional type by
     // construction (the `criticalHeaders` field exists exactly when critical
     // headers were supplied), which the compiler cannot verify - coerce.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     const from = Schema.Struct({
         payload: options.payload ?? defaultPayloadCodec<A, RD1, RE1>(),
         ...(options.criticalHeaders ? { criticalHeaders: Schema.Struct(options.criticalHeaders) } : {}),
@@ -806,6 +818,7 @@ export function Signed<
                 // its output is `sign`'s conditional serialization; both are
                 // computed types the compiler cannot relate to this concrete
                 // getter, so it coerces - the body stays fully typed.
+                // oxlint-disable-next-line typescript/no-unsafe-type-assertion
                 decode: SchemaGetter.transformOrFail(
                     (input: {
                         readonly payload: A;

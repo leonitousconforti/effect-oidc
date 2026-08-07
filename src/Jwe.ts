@@ -23,7 +23,7 @@
  * @see https://www.rfc-editor.org/rfc/rfc7518 - JSON Web Algorithms (JWA)
  */
 
-import { Data, Effect, Schema, SchemaGetter } from "effect";
+import { Data, Effect, Function, Schema, SchemaGetter } from "effect";
 
 import { encryptionParameters, JweAlgorithm, JweEncryption } from "./Jwa.ts";
 import { Jwk, toJsonWebKey } from "./Jwk.ts";
@@ -550,6 +550,8 @@ const keyManagementEncrypt = Effect.fnUntraced(function* (
             const encryptedKey = yield* aesKwWrap(kek, cek);
             return { cek, encryptedKey, headerExtras: { p2s: base64Url(p2s), p2c: options.p2c } };
         }
+        default:
+            return Function.absurd<never>(alg);
     }
 });
 
@@ -671,6 +673,8 @@ const keyManagementDecrypt = Effect.fnUntraced(function* (
             });
             return yield* aesKwUnwrap(kek, encryptedKey);
         }
+        default:
+            return Function.absurd<never>(alg);
     }
 });
 
