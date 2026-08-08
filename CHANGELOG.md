@@ -1,5 +1,11 @@
 # effect-oidc
 
+## 0.0.9
+
+### Patch Changes
+
+- 0a4750b: Update Effect-TS packages to v4.0.0-beta.105
+
 ## 0.0.8
 
 ### Patch Changes
