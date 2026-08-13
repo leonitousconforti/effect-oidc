@@ -1,5 +1,11 @@
 # effect-oidc
 
+## 0.0.10
+
+### Patch Changes
+
+- 9c19f0c: Update Effect-TS packages to v4.0.0-rc.108
+
 ## 0.0.9
 
 ### Patch Changes
