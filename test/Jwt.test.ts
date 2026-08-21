@@ -23,7 +23,7 @@ it.live("signs and verifies a JWT against the JWKS", () =>
             issuer,
             audience: "my-api",
             algorithms: ["ES256"],
-            types: ["JWT"],
+            types: ["at+jwt"],
         });
 
         const accessClaims = yield* Jwt.decodeClaims(Oidc.AccessTokenClaimsSchema)(claims);
@@ -58,8 +58,30 @@ it.live("rejects the wrong issuer, audience, algorithm, and type", () =>
         const badAlgorithm = yield* Effect.flip(Jwt.verify(token, { jwks, algorithms: ["RS256"] }));
         expect(badAlgorithm.reason).toBe("BadAlgorithm");
 
-        const badType = yield* Effect.flip(Jwt.verify(token, { jwks, types: ["at+jwt"] }));
+        // Access tokens are minted as `at+jwt` (RFC 9068), so a verifier
+        // expecting plain JWTs (an id token consumer, say) refuses them.
+        const badType = yield* Effect.flip(Jwt.verify(token, { jwks, types: ["JWT"] }));
         expect(badType.reason).toBe("BadType");
+    })
+);
+
+it.live("only tries JWKS keys whose own alg and key_ops permit verification", () =>
+    Effect.gen(function* () {
+        const { privateJwk, publicJwk } = yield* Jwt.generateSigningKey();
+        const token = yield* Jwt.sign({
+            privateJwk,
+            payload: { iss: issuer, sub: "user-123", aud: "my-api", exp: 9999999999, iat: 1 },
+        });
+
+        // RFC 7517 Section 4.4: a key that names another alg is not a candidate.
+        const otherAlg = yield* Effect.flip(Jwt.verify(token, { jwks: { keys: [{ ...publicJwk, alg: "ES384" }] } }));
+        expect(otherAlg.reason).toBe("UnknownKey");
+
+        // RFC 7517 Section 4.3: a key whose key_ops omit "verify" is not either.
+        const noVerify = yield* Effect.flip(
+            Jwt.verify(token, { jwks: { keys: [{ ...publicJwk, key_ops: ["encrypt"] }] } })
+        );
+        expect(noVerify.reason).toBe("UnknownKey");
     })
 );
 

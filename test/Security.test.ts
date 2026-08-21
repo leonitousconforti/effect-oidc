@@ -171,6 +171,99 @@ it.live("bounds the PBES2 iteration count on JWE decrypt (DoS guard)", () =>
     })
 );
 
+it.live("rejects a PBES2 salt input shorter than 8 octets (RFC 7518 4.8.1.1)", () =>
+    Effect.gen(function* () {
+        const key = yield* importPbkdf2(new TextEncoder().encode("pw"));
+        const jwe = yield* Jwe.encrypt({
+            plaintext: "secret",
+            key,
+            algorithm: "PBES2-HS256+A128KW",
+            encryption: "A128GCM",
+            p2c: 1000,
+        });
+        const parts = jwe.split(".");
+        const header = JSON.parse(
+            new TextDecoder().decode(
+                Uint8Array.from(atob(parts[0].replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0))
+            )
+        );
+        header.p2s = b64(rnd(4));
+        parts[0] = b64(new TextEncoder().encode(JSON.stringify(header)));
+        const error = yield* Effect.flip(Jwe.decrypt({ jwe: parts.join("."), key }));
+        expect(error.reason).toBe("Malformed");
+    })
+);
+
+it.live("decodes JWE segments strictly: one accepted encoding per byte sequence", () =>
+    Effect.gen(function* () {
+        const key = yield* importAesKw(rnd(16));
+        // Encrypt until the ciphertext segment contains a `-` or `_`, then
+        // present the same bytes in the standard alphabet and with padding.
+        let jwe = yield* Jwe.encrypt({ plaintext: "hi".repeat(40), key, algorithm: "A128KW", encryption: "A128GCM" });
+        while (!/[-_]/.test(jwe.split(".")[3])) {
+            jwe = yield* Jwe.encrypt({ plaintext: "hi".repeat(40), key, algorithm: "A128KW", encryption: "A128GCM" });
+        }
+        const parts = jwe.split(".");
+        const standardAlphabet = [...parts.slice(0, 3), parts[3].replace(/-/g, "+").replace(/_/g, "/"), parts[4]];
+        const padded = [...parts.slice(0, 4), `${parts[4]}==`];
+        const whitespace = [...parts.slice(0, 3), `${parts[3]} `, parts[4]];
+        for (const malleated of [standardAlphabet, padded, whitespace]) {
+            const error = yield* Effect.flip(Jwe.decrypt({ jwe: malleated.join("."), key }));
+            expect(error.reason).toBe("Malformed");
+        }
+        const ok = yield* Jwe.decrypt({ jwe, key });
+        expect(new TextDecoder().decode(ok.plaintext)).toBe("hi".repeat(40));
+    })
+);
+
+it.live("answers a bad RSA-OAEP encrypted key exactly like a bad ciphertext", () =>
+    Effect.gen(function* () {
+        // RFC 7516 11.5: a failed RSA key decryption must not be distinguishable
+        // from any other decryption failure, so it continues with a random CEK.
+        const pair = yield* Effect.promise(() =>
+            crypto.subtle.generateKey(
+                { name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
+                true,
+                ["encrypt", "decrypt"]
+            )
+        );
+        const jwe = yield* Jwe.encrypt({
+            plaintext: "hi",
+            key: pair.publicKey,
+            algorithm: "RSA-OAEP-256",
+            encryption: "A128GCM",
+        });
+        const parts = jwe.split(".");
+        parts[1] = b64(rnd(256));
+        const error = yield* Effect.flip(Jwe.decrypt({ jwe: parts.join("."), key: pair.privateKey }));
+        expect(error.reason).toBe("DecryptionFailed");
+    })
+);
+
+it.live("fails encryption with a typed error when handed the wrong kind of key", () =>
+    Effect.gen(function* () {
+        // An RSA key for an ECDH-ES agreement, an AES-KW key for AES-GCM key
+        // wrap: both must surface as KeyManagementFailed, never as a defect.
+        const rsa = yield* Effect.promise(() =>
+            crypto.subtle.generateKey(
+                { name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
+                true,
+                ["encrypt", "decrypt"]
+            )
+        );
+        const notEc = yield* Effect.flip(
+            Jwe.encrypt({ plaintext: "hi", key: rsa.publicKey, algorithm: "ECDH-ES", encryption: "A128GCM" })
+        );
+        expect(notEc.reason).toBe("KeyManagementFailed");
+
+        const kw = yield* importAesKw(rnd(16));
+        const notGcm = yield* Effect.flip(
+            Jwe.encrypt({ plaintext: "hi", key: kw, algorithm: "A128GCMKW", encryption: "A128GCM" })
+        );
+        expect(notGcm.reason).toBe("KeyManagementFailed");
+    })
+);
+
 it.live("enforces JWE key-management and content-encryption allowlists", () =>
     Effect.gen(function* () {
         const key = yield* importAesKw(rnd(16));

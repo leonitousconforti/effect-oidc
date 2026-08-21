@@ -17,6 +17,9 @@ const makeProvider = (options?: { readonly cookies?: Parameters<typeof RelyingPa
     Effect.gen(function* () {
         const { privateJwk, publicJwk } = yield* Jwt.generateSigningKey();
         const tokenRequests: Array<string> = [];
+        // The nonce the browser carried to the authorization endpoint; a
+        // real provider binds it into the id token it mints for that code.
+        let nonce: string | undefined = undefined;
 
         const stub = HttpClient.make((request) =>
             Effect.gen(function* () {
@@ -32,6 +35,7 @@ const makeProvider = (options?: { readonly cookies?: Parameters<typeof RelyingPa
                         subject: "user-123",
                         clientId,
                         ttlSeconds: 300,
+                        nonce,
                         profile: { name: "Some User" },
                     }).pipe(Effect.orDie);
                     return HttpClientResponse.fromWeb(
@@ -60,7 +64,14 @@ const makeProvider = (options?: { readonly cookies?: Parameters<typeof RelyingPa
             ...(options?.cookies === undefined ? {} : { cookies: options.cookies }),
         }).pipe(Effect.provideService(HttpClient.HttpClient, stub));
 
-        return { relyingParty, stub, tokenRequests };
+        return {
+            relyingParty,
+            stub,
+            tokenRequests,
+            setNonce: (value: string | undefined) => {
+                nonce = value;
+            },
+        };
     });
 
 /** Serves the callback route with the given url and request cookies. */
@@ -77,7 +88,7 @@ const serveCallback = (relyingParty: RelyingParty.RelyingParty, url: string, coo
 
 it.live("drives the authorization code + PKCE flow end to end", () =>
     Effect.gen(function* () {
-        const { relyingParty, tokenRequests } = yield* makeProvider();
+        const { relyingParty, setNonce, tokenRequests } = yield* makeProvider();
 
         const begin = yield* relyingParty.beginAuthorization({ payload: "/dashboard" });
         expect(begin.status).toBe(302);
@@ -94,6 +105,13 @@ it.live("drives the authorization code + PKCE flow end to end", () =>
         expect(state).not.toBeNull();
         expect(transaction["oidc_state"]).toBe(state);
         expect(transaction["oidc_payload"]).toBe("/dashboard");
+
+        // The nonce rides both the URL and a cookie; the provider echoes it
+        // in the id token and the callback checks the two agree
+        const nonce = location.searchParams.get("nonce");
+        expect(nonce).not.toBeNull();
+        expect(transaction["oidc_nonce"]).toBe(nonce);
+        setNonce(nonce ?? undefined);
 
         // The challenge in the URL is the S256 digest of the verifier cookie
         const digest = yield* Effect.promise(() =>
@@ -112,6 +130,13 @@ it.live("drives the authorization code + PKCE flow end to end", () =>
         expect(tokenRequests[0]).toContain("grant_type=authorization_code");
         expect(tokenRequests[0]).toContain("code=code-123");
         expect(tokenRequests[0]).toContain(`code_verifier=${transaction["oidc_code_verifier"]}`);
+
+        // An id token minted for some other session's nonce is refused
+        setNonce("someone-elses-nonce");
+        const replayed = yield* Effect.flip(
+            serveCallback(relyingParty, `${redirectUri}?code=code-456&state=${state}`, transaction)
+        );
+        expect(replayed.reason).toBe("InvalidIdToken");
     })
 );
 
@@ -183,6 +208,7 @@ it.live("applies the cookie prefix and naming policy to every transaction cookie
         const transaction = Cookies.toRecord(begin.cookies);
         expect(Object.keys(transaction).toSorted()).toStrictEqual([
             "__Host-google_oauth_code_verifier",
+            "__Host-google_oauth_nonce",
             "__Host-google_oauth_payload",
             "__Host-google_oauth_state",
         ]);
@@ -205,7 +231,7 @@ it.live("recovers the payload on its own and expires the spent cookies", () =>
 
         const response = yield* relyingParty.expireTransactionCookies(HttpServerResponse.redirect("/done"));
         const setCookieHeaders = Cookies.toSetCookieHeaders(response.cookies);
-        for (const name of ["oidc_state", "oidc_code_verifier", "oidc_payload"]) {
+        for (const name of ["oidc_state", "oidc_code_verifier", "oidc_nonce", "oidc_payload"]) {
             expect(
                 setCookieHeaders.some((header) => header.startsWith(`${name}=`) && header.includes("Max-Age=0"))
             ).toBe(true);

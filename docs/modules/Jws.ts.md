@@ -68,7 +68,7 @@ Since v1.0.0
 declare class InvalidHeaders
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L419)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L424)
 
 Since v1.0.0
 
@@ -80,7 +80,7 @@ Since v1.0.0
 declare class InvalidJws
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L431)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L436)
 
 Since v1.0.0
 
@@ -92,7 +92,7 @@ Since v1.0.0
 declare class InvalidSignature
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L425)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L430)
 
 Since v1.0.0
 
@@ -1055,7 +1055,7 @@ Any unverified JWS serialization.
 declare const Unsecured: Schema.Union<readonly [typeof General, typeof Flattened, typeof Compact]>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L402)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L406)
 
 Since v1.0.0
 
@@ -1088,7 +1088,7 @@ declare const sign: <
   criticalHeaders?: (CriticalHeaders & ValidateCriticalHeaderKeys<CriticalHeaders>) | undefined
 }) => (
   payload: A,
-  criticalHeaders?: Schema.Struct.Type<CriticalHeaders> | undefined
+  criticalHeaders?: Schema.Struct.Type<CriticalHeaders>
 ) => Effect.Effect<
   PrivateKeys extends [infer _] ? (typeof Flattened)["Encoded"] : (typeof General)["Encoded"],
   Schema.SchemaError,
@@ -1096,7 +1096,7 @@ declare const sign: <
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L599)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L604)
 
 Since v1.0.0
 
@@ -12854,7 +12854,7 @@ declare const verify: <
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L444)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L449)
 
 Since v1.0.0
 
@@ -12882,7 +12882,7 @@ provides no syntax to represent a JWS Unprotected Header value.
 declare class Compact
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L363)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L367)
 
 Since v1.0.0
 
@@ -12914,7 +12914,7 @@ members alongside "payload".
 declare class Flattened
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L329)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L333)
 
 Since v1.0.0
 
@@ -12943,7 +12943,7 @@ Supports multiple digital signatures and/or MACs for the same payload.
 declare class General
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L287)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L291)
 
 Since v1.0.0
 
@@ -12985,7 +12985,7 @@ declare const Signed: <
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L762)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L771)
 
 Since v1.0.0
 
@@ -19208,6 +19208,6 @@ declare const Verified: <
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L706)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jws.ts#L713)
 
 Since v1.0.0

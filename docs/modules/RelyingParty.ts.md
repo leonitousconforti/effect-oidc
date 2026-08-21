@@ -11,11 +11,11 @@ that owns the browser-facing half of the authorization code + PKCE flow.
 `make` realizes a provider registration into two route handlers'
 worth of logic: `beginAuthorization` answers the login route with a
 redirect to the provider and drops the short-lived transaction cookies
-(state, PKCE verifier, and an optional opaque payload such as a return-to
-path), and `completeAuthorization` answers the callback route by
-validating the echoed state against those cookies, exchanging the code,
-and verifying the id token - handing back the claims for the app to turn
-into its own session:
+(state, PKCE verifier, id token nonce, and an optional opaque payload such
+as a return-to path), and `completeAuthorization` answers the callback
+route by validating the echoed state against those cookies, exchanging the
+code, and verifying the id token (including its nonce) - handing back the
+claims for the app to turn into its own session:
 
 ```ts
 import { Effect, Layer, Option } from "effect"
@@ -39,11 +39,15 @@ const GoogleSignIn = Effect.gen(function* () {
     .beginAuthorization({ payload: "/dashboard" })
     .pipe(Effect.catch(() => Effect.succeed(HttpServerResponse.redirect("/login?error=start_failed"))))
 
+  // The payload rides a cookie the browser can rewrite: only ever follow
+  // it to a local path, never to an absolute or protocol-relative URL.
+  const localPath = (payload: string) => (payload.startsWith("/") && !payload.startsWith("//") ? payload : "/")
+
   const callback = google.completeAuthorization.pipe(
     Effect.map(({ claims, payload }) =>
       // Create the local session for claims.sub here, then land the
       // visitor back where they started.
-      HttpServerResponse.redirect(Option.getOrElse(payload, () => `/welcome/${claims.sub}`))
+      HttpServerResponse.redirect(Option.match(payload, { onNone: () => `/welcome/${claims.sub}`, onSome: localPath }))
     ),
     Effect.catch((error) => Effect.succeed(HttpServerResponse.redirect(`/login?error=${error.reason}`))),
     Effect.flatMap(google.expireTransactionCookies),
@@ -94,7 +98,7 @@ exchange use it - so the realized value requires only the incoming
 request.
 
 Cookie behavior is adjustable without being escapable: `prefix`
-namespaces the three transaction cookies (mandatory when one app talks to
+namespaces the four transaction cookies (mandatory when one app talks to
 several providers), `name` lets an app-wide cookie policy rewrite the
 final names (a `__Host-` prefix, an environment suffix), and `secure`
 exists solely for plain-http local development. The cookies are always
@@ -126,7 +130,7 @@ declare const make: (options: {
 }) => Effect.Effect<RelyingParty, never, HttpClient.HttpClient>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L180)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L184)
 
 Since v1.0.0
 
@@ -146,7 +150,7 @@ protocol failure.
 declare class CallbackError
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L90)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L94)
 
 Since v1.0.0
 
@@ -208,13 +212,13 @@ export interface RelyingParty {
    */
   readonly payload: Effect.Effect<Option.Option<string>, never, HttpServerRequest.HttpServerRequest>
 
-  /** Expires the spent state, verifier, and payload cookies on a response. */
+  /** Expires the spent state, verifier, nonce, and payload cookies on a response. */
   readonly expireTransactionCookies: (
     response: HttpServerResponse.HttpServerResponse
   ) => Effect.Effect<HttpServerResponse.HttpServerResponse, Cookies.CookiesError>
 }
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L108)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L112)
 
 Since v1.0.0

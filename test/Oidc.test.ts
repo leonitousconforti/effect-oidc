@@ -24,14 +24,23 @@ it("builds a discovery document rooted at the issuer", () => {
 
 it("resolves client authentication from the Basic header or the body", () => {
     // client_secret_basic: form-urlencoded parts, joined and base64 encoded.
-    // The header wins over any body parameters.
+    // A body client_id alongside it is fine (public clients always send one).
     const header = `Basic ${Encoding.encodeBase64(`${encodeURIComponent("demo service")}:${encodeURIComponent("s3:cret")}`)}`;
+    expect(
+        Oidc.clientAuthentication({
+            authorization: header,
+            request: { client_id: "body-client" },
+        })
+    ).toStrictEqual(Option.some({ clientId: "demo service", clientSecret: "s3:cret" }));
+
+    // RFC 6749 Section 2.3: two authentication methods in one request is an
+    // error, never a precedence question.
     expect(
         Oidc.clientAuthentication({
             authorization: header,
             request: { client_id: "body-client", client_secret: "body-secret" },
         })
-    ).toStrictEqual(Option.some({ clientId: "demo service", clientSecret: "s3:cret" }));
+    ).toStrictEqual(Option.none());
 
     // client_secret_post: body parameters, secret optional (public clients).
     expect(Oidc.clientAuthentication({ request: { client_id: "demo-app", client_secret: undefined } })).toStrictEqual(
@@ -45,6 +54,53 @@ it("resolves client authentication from the Basic header or the body", () => {
         Oidc.clientAuthentication({ authorization: `Basic ${Encoding.encodeBase64("no-separator")}`, request: {} })
     ).toStrictEqual(Option.none());
 });
+
+it("resolves paths relative to the issuer, keeping any path the issuer carries", () => {
+    // OIDC Discovery 1.0 Section 4.1: the well-known suffix is appended to the
+    // issuer, not to its origin; `new URL("/x", issuer)` would drop the realm.
+    expect(Oidc.issuerUrl("https://idp.example.com/realms/tenant", "/.well-known/openid-configuration")).toBe(
+        "https://idp.example.com/realms/tenant/.well-known/openid-configuration"
+    );
+    expect(Oidc.issuerUrl("https://idp.example.com/realms/tenant/", ".well-known/jwks.json")).toBe(
+        "https://idp.example.com/realms/tenant/.well-known/jwks.json"
+    );
+    const document = Oidc.makeDiscoveryDocument("https://idp.example.com/realms/tenant");
+    expect(document.jwks_uri).toBe("https://idp.example.com/realms/tenant/.well-known/jwks.json");
+    expect(document.token_endpoint).toBe("https://idp.example.com/realms/tenant/oauth/token");
+});
+
+it.live("fetchDiscovery validates every endpoint credentials are sent to", () =>
+    Effect.gen(function* () {
+        const tenant = "https://idp.example.com/realms/tenant";
+        let fetched: string | undefined = undefined;
+        const serve = (document: Record<string, unknown>) =>
+            HttpClient.make((request) => {
+                fetched = request.url;
+                return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json(document)));
+            });
+        const good = Oidc.makeDiscoveryDocument(tenant);
+
+        const document = yield* Oidc.fetchDiscovery(tenant).pipe(
+            Effect.provideService(HttpClient.HttpClient, serve(good))
+        );
+        expect(document.issuer).toBe(tenant);
+        expect(fetched).toBe("https://idp.example.com/realms/tenant/.well-known/openid-configuration");
+
+        // A hostile document may not point the revocation endpoint (which
+        // receives the client secret) or the userinfo endpoint (which
+        // receives the access token) anywhere but the issuer's origin.
+        for (const hostile of [
+            { ...good, revocation_endpoint: "https://evil.example.com/revoke" },
+            { ...good, userinfo_endpoint: "http://idp.example.com/realms/tenant/oauth/userinfo" },
+            { ...good, token_endpoint: "https://evil.example.com/token" },
+        ]) {
+            const error = yield* Effect.flip(
+                Oidc.fetchDiscovery(tenant).pipe(Effect.provideService(HttpClient.HttpClient, serve(hostile)))
+            );
+            expect(error._tag === "DiscoveryError" ? error.reason : error._tag).toBe("InvalidEndpoint");
+        }
+    })
+);
 
 it.live("exchanges client credentials with a Basic-authenticated token request", () =>
     Effect.gen(function* () {
@@ -171,6 +227,56 @@ it.live("verifies an RS256 id token, as third-party providers sign them", () =>
         );
         expect(narrowed._tag).toBe("JwtError");
         expect(narrowed.reason).toBe("BadAlgorithm");
+    })
+);
+
+it.live("decodes a JWKS leniently, skipping keys it does not understand", () =>
+    Effect.gen(function* () {
+        const { publicJwk } = yield* Jwt.generateSigningKey();
+        // A Keycloak-style set: an encryption key with a JWE alg, an Ed25519
+        // key, and a malformed entry next to the one signing key we can use.
+        // RFC 7517 Section 5: skip what we do not understand, keep the rest.
+        const jwks = yield* Schema.decodeUnknownEffect(Jwt.JwksSchema)({
+            keys: [
+                { kty: "RSA", n: "nnn", e: "AQAB", kid: "enc", alg: "RSA-OAEP", use: "enc" },
+                { kty: "OKP", crv: "Ed25519", x: "xxx", kid: "ed" },
+                { kty: "EC", crv: "P-256", kid: "broken" },
+                publicJwk,
+            ],
+        });
+        expect(jwks.keys).toStrictEqual([publicJwk]);
+    })
+);
+
+it.live("jwksCache refreshes on demand, rate limited, for rotated keys", () =>
+    Effect.gen(function* () {
+        const first = yield* Jwt.generateSigningKey();
+        const second = yield* Jwt.generateSigningKey();
+        let current = first.publicJwk;
+        let fetches = 0;
+        const stub = HttpClient.make((request) => {
+            fetches += 1;
+            return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json({ keys: [current] })));
+        });
+
+        const cache = yield* Oidc.jwksCache("https://id.example.com/.well-known/jwks.json", {
+            minRefreshInterval: "1 hour",
+        });
+        const get = cache.get.pipe(Effect.provideService(HttpClient.HttpClient, stub));
+        const refresh = cache.refresh.pipe(Effect.provideService(HttpClient.HttpClient, stub));
+
+        expect((yield* get).keys).toStrictEqual([first.publicJwk]);
+
+        // The issuer rotates: a forced refresh sees the new key at once.
+        current = second.publicJwk;
+        expect((yield* refresh).keys).toStrictEqual([second.publicJwk]);
+        expect(fetches).toBe(2);
+
+        // Within the window a second forced refresh is answered from the
+        // cache - unknown kids in hostile tokens cannot flood the issuer.
+        current = first.publicJwk;
+        expect((yield* refresh).keys).toStrictEqual([second.publicJwk]);
+        expect(fetches).toBe(2);
     })
 );
 

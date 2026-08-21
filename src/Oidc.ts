@@ -19,7 +19,7 @@
  * @category Oidc
  */
 
-import { DateTime, type Duration, Effect, Encoding, Option, Ref, Result, Schema } from "effect";
+import { DateTime, Duration, Effect, Encoding, Option, Ref, Result, Schema } from "effect";
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http";
 
 import type * as Jwa from "./Jwa.ts";
@@ -107,7 +107,8 @@ export const TokenResponseSchema = Schema.Struct({
     access_token: Schema.String,
     token_type: Schema.Literal("Bearer"),
     expires_in: Schema.Int,
-    scope: Schema.String,
+    /** RFC 6749 Section 5.1: optional when identical to the scope requested. */
+    scope: Schema.String.pipe(Schema.optional),
     refresh_token: Schema.String.pipe(Schema.optional),
     id_token: Schema.String.pipe(Schema.optional),
 });
@@ -163,6 +164,19 @@ export class DiscoveryError extends Schema.Error<DiscoveryError>("effect-oidc/Di
 }) {}
 
 /**
+ * Resolves a path relative to an issuer identifier, keeping any path the
+ * issuer itself carries (OIDC Discovery 1.0 Section 4.1: the well-known
+ * suffix is appended to the issuer, not to its origin). `new URL(path,
+ * issuer)` would drop `/realms/tenant` from `https://idp.example/realms/tenant`
+ * and silently talk to a different (or nonexistent) issuer.
+ *
+ * @since 1.0.0
+ * @category Utilities
+ */
+export const issuerUrl = (issuer: string, path: string): string =>
+    `${issuer.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+
+/**
  * Builds the discovery document for an issuer, using the conventional
  * endpoint paths.
  *
@@ -171,10 +185,10 @@ export class DiscoveryError extends Schema.Error<DiscoveryError>("effect-oidc/Di
  */
 export const makeDiscoveryDocument = (issuer: string): Schema.Schema.Type<typeof DiscoveryDocumentSchema> => ({
     issuer,
-    authorization_endpoint: new URL("/oauth/authorize", issuer).toString(),
-    token_endpoint: new URL("/oauth/token", issuer).toString(),
-    jwks_uri: new URL("/.well-known/jwks.json", issuer).toString(),
-    userinfo_endpoint: new URL("/oauth/userinfo", issuer).toString(),
+    authorization_endpoint: issuerUrl(issuer, "/oauth/authorize"),
+    token_endpoint: issuerUrl(issuer, "/oauth/token"),
+    jwks_uri: issuerUrl(issuer, "/.well-known/jwks.json"),
+    userinfo_endpoint: issuerUrl(issuer, "/oauth/userinfo"),
     response_types_supported: ["code"],
     grant_types_supported: ["authorization_code", "refresh_token", "client_credentials"],
     scopes_supported: ["openid", "profile"],
@@ -182,7 +196,7 @@ export const makeDiscoveryDocument = (issuer: string): Schema.Schema.Type<typeof
     id_token_signing_alg_values_supported: ["ES256"],
     code_challenge_methods_supported: ["S256"],
     token_endpoint_auth_methods_supported: ["none", "client_secret_basic", "client_secret_post"],
-    revocation_endpoint: new URL("/oauth/revoke", issuer).toString(),
+    revocation_endpoint: issuerUrl(issuer, "/oauth/revoke"),
 });
 
 /**
@@ -190,7 +204,9 @@ export const makeDiscoveryDocument = (issuer: string): Schema.Schema.Type<typeof
  * `Authorization: Basic` header (`client_secret_basic`, the OIDC default
  * method) takes precedence over the `client_id`/`client_secret` body
  * parameters (`client_secret_post`). Returns `Option.none` when the request
- * names no client at all, or when a presented Basic header is malformed.
+ * names no client at all, when a presented Basic header is malformed, or
+ * when the request uses both methods at once (a body `client_secret` next
+ * to a Basic header), which RFC 6749 Section 2.3 forbids.
  *
  * For the provider's token endpoint: public clients resolve with an
  * undefined secret, confidential clients must have their secret verified
@@ -212,6 +228,7 @@ export const clientAuthentication = (options: {
     const header = options.authorization;
 
     if (typeof header === "string" && header.slice(0, 6).toLowerCase() === "basic ") {
+        if (options.request.client_secret !== undefined) return Option.none();
         const decoded = Result.getOrUndefined(Encoding.decodeBase64String(header.slice(6).trim()));
         const separator = decoded === undefined ? -1 : decoded.indexOf(":");
         if (decoded === undefined || separator === -1) return Option.none();
@@ -238,7 +255,8 @@ export const clientAuthentication = (options: {
 };
 
 /**
- * Issues an access token JWT. Used by the provider's token endpoint.
+ * Issues an access token JWT (RFC 9068, `typ: "at+jwt"`). Used by the
+ * provider's token endpoint.
  *
  * @since 1.0.0
  * @category Provider
@@ -253,8 +271,11 @@ export const issueAccessToken = Effect.fnUntraced(function* (options: {
     readonly ttlSeconds: number;
 }) {
     const nowSeconds = yield* DateTime.now.pipe(Effect.map((now) => Math.floor(DateTime.toEpochMillis(now) / 1000)));
+    // RFC 9068 Section 2.1: access tokens carry `typ: "at+jwt"` so a resource
+    // server can refuse any other JWT the issuer signs (an id token, say).
     return yield* Jwt.sign({
         privateJwk: options.privateJwk,
+        typ: "at+jwt",
         payload: {
             iss: options.issuer,
             sub: options.subject,
@@ -269,7 +290,7 @@ export const issueAccessToken = Effect.fnUntraced(function* (options: {
 });
 
 /**
- * Issues an id token JWT for "Sign in with Tinyburg". The audience is the
+ * Issues an id token JWT. The audience is the
  * client id, per OIDC.
  *
  * @since 1.0.0
@@ -329,7 +350,7 @@ export const generatePkce = Effect.fnUntraced(function* () {
  */
 export const fetchDiscovery = Effect.fnUntraced(function* (issuer: string) {
     const document = yield* Effect.flatMap(
-        HttpClient.get(new URL("/.well-known/openid-configuration", issuer)),
+        HttpClient.get(issuerUrl(issuer, "/.well-known/openid-configuration")),
         HttpClientResponse.schemaBodyJson(DiscoveryDocumentSchema)
     );
 
@@ -343,7 +364,14 @@ export const fetchDiscovery = Effect.fnUntraced(function* (issuer: string) {
     }
 
     const issuerOrigin = new URL(issuer).origin;
-    for (const endpoint of [document.authorization_endpoint, document.token_endpoint, document.jwks_uri]) {
+    const endpoints = [
+        document.authorization_endpoint,
+        document.token_endpoint,
+        document.jwks_uri,
+        document.userinfo_endpoint,
+        document.revocation_endpoint,
+    ].filter((endpoint) => endpoint !== undefined);
+    for (const endpoint of endpoints) {
         const url = yield* Effect.try({
             try: () => new URL(endpoint),
             catch: () => new DiscoveryError({ reason: "InvalidEndpoint" }),
@@ -366,10 +394,30 @@ export const fetchJwks = (jwksUri: string) =>
     Effect.flatMap(HttpClient.get(jwksUri), HttpClientResponse.schemaBodyJson(Jwt.JwksSchema));
 
 /**
+ * A cached view of an issuer's JWKS document - see {@link jwksCache}.
+ *
+ * @since 1.0.0
+ * @category Client
+ */
+export interface JwksCache<E> {
+    /** The cached document, fetched on first use and refreshed after the ttl. */
+    readonly get: Effect.Effect<Schema.Schema.Type<typeof Jwt.JwksSchema>, E>;
+    /**
+     * Drops the cached document and fetches a fresh one, for when a token
+     * names a `kid` the cached set lacks (the issuer rotated its keys). Rate
+     * limited to one forced refresh per `minRefreshInterval` - within the
+     * window it simply answers the cached document - so unknown `kid`s in
+     * hostile tokens cannot be turned into a request flood at the issuer.
+     */
+    readonly refresh: Effect.Effect<Schema.Schema.Type<typeof Jwt.JwksSchema>, E>;
+}
+
+/**
  * Builds a cached view of an issuer's JWKS document for verifiers that run
  * per request: the document is fetched lazily on first use (concurrent
  * callers share one fetch), reused for `ttl` (10 minutes by default), and
- * refreshed after that.
+ * refreshed after that. A forced `refresh` (for an unknown `kid`) is rate
+ * limited to one per `minRefreshInterval` (30 seconds by default).
  *
  * Availability beats freshness on the failure paths. A failed refresh
  * serves the previously fetched document, so a blip at the issuer cannot
@@ -381,19 +429,47 @@ export const fetchJwks = (jwksUri: string) =>
  * @since 1.0.0
  * @category Client
  */
-export const cachedJwks = (jwksUri: string, ttl: Duration.Input = "10 minutes") =>
-    Effect.flatMap(Ref.make(Option.none<Schema.Schema.Type<typeof Jwt.JwksSchema>>()), (lastGood) =>
-        fetchJwks(jwksUri).pipe(
+export const jwksCache = (
+    jwksUri: string,
+    options?: { readonly ttl?: Duration.Input | undefined; readonly minRefreshInterval?: Duration.Input | undefined }
+) =>
+    Effect.gen(function* () {
+        const lastGood = yield* Ref.make(Option.none<Schema.Schema.Type<typeof Jwt.JwksSchema>>());
+        const lastRefreshMillis = yield* Ref.make(0);
+        const minRefreshMillis = Duration.toMillis(options?.minRefreshInterval ?? "30 seconds");
+
+        const [cached, invalidate] = yield* fetchJwks(jwksUri).pipe(
             Effect.tap((jwks) => Ref.set(lastGood, Option.some(jwks))),
             Effect.catch((error) =>
                 Ref.get(lastGood).pipe(
                     Effect.flatMap(Option.match({ onNone: () => Effect.fail(error), onSome: Effect.succeed }))
                 )
             ),
-            Effect.cachedInvalidateWithTTL(ttl),
-            Effect.map(([cached, invalidate]) => Effect.tapError(cached, () => invalidate))
-        )
-    );
+            Effect.cachedInvalidateWithTTL(options?.ttl ?? "10 minutes")
+        );
+        const get = Effect.tapError(cached, () => invalidate);
+
+        const refresh = Effect.gen(function* () {
+            const nowMillis = DateTime.toEpochMillis(yield* DateTime.now);
+            const last = yield* Ref.get(lastRefreshMillis);
+            if (nowMillis - last < minRefreshMillis) return yield* get;
+            yield* Ref.set(lastRefreshMillis, nowMillis);
+            yield* invalidate;
+            return yield* get;
+        });
+
+        return { get, refresh };
+    });
+
+/**
+ * Builds a cached view of an issuer's JWKS document - the `get` half of
+ * {@link jwksCache}, for callers that do not need forced refreshes.
+ *
+ * @since 1.0.0
+ * @category Client
+ */
+export const cachedJwks = (jwksUri: string, ttl: Duration.Input = "10 minutes") =>
+    Effect.map(jwksCache(jwksUri, { ttl }), (cache) => cache.get);
 
 /**
  * Builds the browser redirect URL that starts the code flow.
