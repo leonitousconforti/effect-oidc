@@ -186,7 +186,7 @@ export * as Oidc from "./Oidc.ts"
  * account or session, deciding where errors redirect, and setting the
  * session cookie are the app's business. On both the success and the
  * failure response, pass the response through `expireTransactionCookies` so
- * the spent state, verifier, nonce, and payload cookies do not outlive the flow.
+ * the spent state, verifier, and payload cookies do not outlive the flow.
  *
  * The endpoints can be pinned statically (as above) or resolved at startup
  * from `Oidc.fetchDiscovery`. The provider's JWKS is fetched lazily, cached
