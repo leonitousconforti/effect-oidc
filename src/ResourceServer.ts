@@ -166,15 +166,28 @@ export const layer = <RRevoked = never>(options: {
      * The issuer's JWKS, provided statically instead of fetched. For a
      * resource server living in the same process as its provider, or keys
      * distributed out of band, this removes the network dependency on the
-     * issuer entirely; `jwksTtl` is then ignored.
+     * issuer entirely; `jwksUri` and `jwksTtl` are then ignored.
      */
     readonly jwks?: Schema.Schema.Type<typeof Jwt.JwksSchema> | undefined;
+    /**
+     * Where to fetch the JWKS. Defaults to `<issuer>/.well-known/jwks.json`,
+     * the path this library's provider serves; third-party issuers publish
+     * theirs as `jwks_uri` in the discovery document - pass that instead.
+     */
+    readonly jwksUri?: string | undefined;
     readonly jwksTtl?: Duration.Input | undefined;
     /**
      * Accepted signing algorithms (defaults to `["ES256"]`). Pinning the
      * algorithm is defense-in-depth against downgrade / key-confusion.
      */
     readonly algorithms?: ReadonlyArray<(typeof Jwa.JwsAlgorithm)["Type"]> | undefined;
+    /**
+     * Accepted `typ` header values (defaults to `["at+jwt"]`, RFC 9068). A
+     * token must carry one of them, which keeps the issuer's other JWTs (id
+     * tokens, with `typ: "JWT"`) from being presented as access tokens.
+     * Pass the values your issuer actually mints if it predates RFC 9068.
+     */
+    readonly types?: ReadonlyArray<string> | undefined;
     /**
      * Decides whether a verified token has been revoked - the stateful
      * complement to the issuer's RFC 7009 revocation endpoint, typically a
@@ -195,34 +208,51 @@ export const layer = <RRevoked = never>(options: {
         Authorization,
         Effect.gen(function* () {
             const services = yield* Effect.context<HttpClient.HttpClient | RRevoked>();
-            const jwksUri = new URL("/.well-known/jwks.json", options.issuer).toString();
+            const jwksUri = options.jwksUri ?? Oidc.issuerUrl(options.issuer, "/.well-known/jwks.json");
             const algorithms = options.algorithms ?? ["ES256"];
+            const types = options.types ?? ["at+jwt"];
 
-            // Static keys skip the fetch entirely. Otherwise Oidc.cachedJwks
+            // Static keys skip the fetch entirely. Otherwise Oidc.jwksCache
             // reuses a fetched document for the TTL, serves the previous
             // (stale) keys when a refresh fails, and evicts a failure with
             // nothing to fall back on right away - a transient blip must not
             // become a fleet-wide auth outage lasting the whole TTL. The very
             // first fetch still fails closed.
-            const jwksSource: Effect.Effect<
+            type JwksEffect = Effect.Effect<
                 Schema.Schema.Type<typeof Jwt.JwksSchema>,
                 Schema.SchemaError | HttpClientError.HttpClientError
-            > = options.jwks !== undefined
-                ? Effect.succeed(options.jwks)
-                : (yield* Oidc.cachedJwks(jwksUri, options.jwksTtl)).pipe(Effect.provideContext(services));
+            >;
+            const jwksSource: { readonly get: JwksEffect; readonly refresh: JwksEffect } =
+                options.jwks !== undefined
+                    ? { get: Effect.succeed(options.jwks), refresh: Effect.succeed(options.jwks) }
+                    : yield* Oidc.jwksCache(jwksUri, { ttl: options.jwksTtl }).pipe(
+                          Effect.map((cache) => ({
+                              get: Effect.provideContext(cache.get, services),
+                              refresh: Effect.provideContext(cache.refresh, services),
+                          }))
+                      );
+
+            const verify = (token: string, jwks: Schema.Schema.Type<typeof Jwt.JwksSchema>) =>
+                Jwt.verify(token, { jwks, issuer: options.issuer, audience: options.audience, algorithms, types });
 
             return {
                 bearer: Effect.fnUntraced(function* (next, { credential, endpoint, group }) {
                     if (Redacted.value(credential) === "") return yield* new HttpApiError.Unauthorized();
 
-                    const jwks = yield* jwksSource.pipe(Effect.catch(() => new HttpApiError.InternalServerError()));
+                    const token = Redacted.value(credential);
+                    const jwks = yield* jwksSource.get.pipe(Effect.catch(() => new HttpApiError.InternalServerError()));
 
-                    const claims = yield* Jwt.verify(Redacted.value(credential), {
-                        jwks,
-                        issuer: options.issuer,
-                        audience: options.audience,
-                        algorithms,
-                    }).pipe(Effect.catch(() => new HttpApiError.Unauthorized()));
+                    // A token naming a key the cached set lacks is most likely
+                    // signed by a freshly rotated key: refetch (rate limited by
+                    // the cache) and try once more before refusing it.
+                    const claims = yield* verify(token, jwks).pipe(
+                        Effect.catch((error) =>
+                            error.reason === "UnknownKey"
+                                ? jwksSource.refresh.pipe(Effect.flatMap((fresh) => verify(token, fresh)))
+                                : Effect.fail(error)
+                        ),
+                        Effect.catch(() => new HttpApiError.Unauthorized())
+                    );
 
                     const accessClaims = yield* Jwt.decodeClaims(Oidc.AccessTokenClaimsSchema)(claims).pipe(
                         Effect.catch(() => new HttpApiError.Unauthorized())

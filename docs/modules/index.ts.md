@@ -95,7 +95,7 @@ Re-exports all named exports from the "./RelyingParty.ts" module as `RelyingPart
 export * as RelyingParty from "./RelyingParty.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L196)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L200)
 
 Since v1.0.0
 
@@ -111,7 +111,7 @@ Re-exports all named exports from the "./ResourceServer.ts" module as `ResourceS
 export * as ResourceServer from "./ResourceServer.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L249)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L253)
 
 Since v1.0.0
 

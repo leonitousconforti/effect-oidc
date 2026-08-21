@@ -88,8 +88,10 @@ declare const layer: <RRevoked = never>(options: {
   readonly issuer: string
   readonly audience: string
   readonly jwks?: Schema.Schema.Type<typeof Jwt.JwksSchema> | undefined
+  readonly jwksUri?: string | undefined
   readonly jwksTtl?: Duration.Input | undefined
   readonly algorithms?: ReadonlyArray<(typeof Jwa.JwsAlgorithm)["Type"]> | undefined
+  readonly types?: ReadonlyArray<string> | undefined
   readonly revoked?:
     | ((claims: Schema.Schema.Type<typeof Oidc.AccessTokenClaimsSchema>) => Effect.Effect<boolean, unknown, RRevoked>)
     | undefined

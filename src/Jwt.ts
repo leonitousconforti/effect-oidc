@@ -159,8 +159,9 @@ export const generateSigningKey = Effect.fnUntraced(function* () {
 
 /**
  * Signs a payload as a compact-serialized JWT with the given private JWK,
- * using the key's `alg` (defaulting to ES256) and carrying its `kid` in the
- * protected header.
+ * using the key's `alg` (defaulting to ES256) and carrying its `kid` and
+ * the `typ` (defaulting to `"JWT"`; access tokens use `"at+jwt"`, RFC 9068)
+ * in the protected header.
  *
  * @since 1.0.0
  * @category Signing
@@ -168,6 +169,8 @@ export const generateSigningKey = Effect.fnUntraced(function* () {
 export const sign = Effect.fnUntraced(function* (options: {
     readonly privateJwk: Schema.Schema.Type<typeof PrivateJwkSchema>;
     readonly payload: Record<string, unknown>;
+    /** The `typ` header (defaults to `"JWT"`). */
+    readonly typ?: string | undefined;
 }) {
     const algorithm = options.privateJwk.alg ?? "ES256";
     const key = yield* Effect.promise(() =>
@@ -183,7 +186,7 @@ export const sign = Effect.fnUntraced(function* (options: {
                 algorithm,
                 key,
                 header: {
-                    typ: "JWT",
+                    typ: options.typ ?? "JWT",
                     ...(options.privateJwk.kid === undefined ? {} : { kid: options.privateJwk.kid }),
                 },
             },

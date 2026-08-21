@@ -59,9 +59,11 @@ Since v1.0.0
 ## isCompatibleWith
 
 Returns whether a JWK may verify a signature under the given JWS algorithm:
-the key type (and EC curve) must match the algorithm family, and a key
-marked for encryption (`use: "enc"`) is rejected. Gate key selection with
-this so a token cannot steer a key of one family into an incompatible
+the key type (and EC curve) must match the algorithm family, a key marked
+for encryption (`use: "enc"`) is rejected, a key that names its own `alg`
+(RFC 7517 Section 4.4) is only used for that algorithm, and a key that
+lists `key_ops` (Section 4.3) must include `verify`. Gate key selection
+with this so a token cannot steer a key of one family into an incompatible
 algorithm (the classic asymmetric/symmetric confusion).
 
 **Signature**
@@ -70,7 +72,7 @@ algorithm (the classic asymmetric/symmetric confusion).
 declare const isCompatibleWith: (alg: (typeof JwsAlgorithm)["Type"], jwk: (typeof Jwk)["Type"]) => boolean
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L367)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L385)
 
 Since v1.0.0
 
@@ -84,7 +86,7 @@ Returns whether a JWK carries private key material (`d` for EC/RSA).
 declare const isPrivate: (jwk: (typeof Jwk)["Type"]) => boolean
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L406)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L428)
 
 Since v1.0.0
 
@@ -100,7 +102,7 @@ verification - that enables forgery.
 declare const isSymmetric: (jwk: (typeof Jwk)["Type"]) => boolean
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L398)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L420)
 
 Since v1.0.0
 
@@ -512,6 +514,12 @@ Since v1.0.0
 A JWK Set as defined in RFC 7517 Section 5. A JSON object that represents
 a set of JWKs. The "keys" member is required and must be an array of JWKs.
 
+Keys this module does not understand (an unsupported `kty` such as "OKP",
+an encryption key carrying a JWE `alg` such as "RSA-OAEP", or a malformed
+entry) are skipped on decode rather than failing the whole set, as RFC
+7517 Section 5 recommends - a provider publishing one exotic key next to
+its signing keys must not take every verification down with it.
+
 **See**
 
 - https://www.rfc-editor.org/rfc/rfc7517#section-5
@@ -520,255 +528,278 @@ a set of JWKs. The "keys" member is required and must be an array of JWKs.
 
 ```ts
 declare const JwkSet: Schema.Struct<{
-  readonly keys: Schema.$Array<
-    Schema.Union<
-      readonly [
-        Schema.Struct<{
-          readonly d: Schema.String
-          readonly use: Schema.optional<Schema.Literals<readonly ["sig", "enc"]>>
-          readonly key_ops: Schema.optional<
-            Schema.$Array<
-              Schema.Literals<
-                readonly ["sign", "verify", "encrypt", "decrypt", "wrapKey", "unwrapKey", "deriveKey", "deriveBits"]
-              >
-            >
-          >
-          readonly alg: Schema.optional<
-            Schema.Literals<
-              readonly [
-                "HS256",
-                "HS384",
-                "HS512",
-                "RS256",
-                "RS384",
-                "RS512",
-                "ES256",
-                "ES384",
-                "ES512",
-                "PS256",
-                "PS384",
-                "PS512"
-              ]
-            >
-          >
-          readonly kid: Schema.optional<Schema.String>
-          readonly x5u: Schema.optional<Schema.String>
-          readonly x5c: Schema.optional<Schema.$Array<Schema.String>>
-          readonly x5t: Schema.optional<Schema.String>
-          readonly "x5t#S256": Schema.optional<Schema.String>
-          readonly kty: Schema.Literal<"EC">
-          readonly crv: Schema.Literals<readonly ["P-256", "P-384", "P-521"]>
-          readonly x: Schema.String
-          readonly y: Schema.String
-        }>,
-        Schema.Struct<{
-          readonly use: Schema.optional<Schema.Literals<readonly ["sig", "enc"]>>
-          readonly key_ops: Schema.optional<
-            Schema.$Array<
-              Schema.Literals<
-                readonly ["sign", "verify", "encrypt", "decrypt", "wrapKey", "unwrapKey", "deriveKey", "deriveBits"]
-              >
-            >
-          >
-          readonly alg: Schema.optional<
-            Schema.Literals<
-              readonly [
-                "HS256",
-                "HS384",
-                "HS512",
-                "RS256",
-                "RS384",
-                "RS512",
-                "ES256",
-                "ES384",
-                "ES512",
-                "PS256",
-                "PS384",
-                "PS512"
-              ]
-            >
-          >
-          readonly kid: Schema.optional<Schema.String>
-          readonly x5u: Schema.optional<Schema.String>
-          readonly x5c: Schema.optional<Schema.$Array<Schema.String>>
-          readonly x5t: Schema.optional<Schema.String>
-          readonly "x5t#S256": Schema.optional<Schema.String>
-          readonly kty: Schema.Literal<"EC">
-          readonly crv: Schema.Literals<readonly ["P-256", "P-384", "P-521"]>
-          readonly x: Schema.String
-          readonly y: Schema.String
-        }>,
-        Schema.Union<
-          readonly [
-            Schema.Struct<{
-              readonly d: Schema.String
-              readonly p: Schema.String
-              readonly q: Schema.String
-              readonly dp: Schema.String
-              readonly dq: Schema.String
-              readonly qi: Schema.String
-              readonly oth: Schema.optional<
-                Schema.$Array<
-                  Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
+  readonly keys: Schema.decodeTo<
+    Schema.$Array<
+      Schema.Union<
+        readonly [
+          Schema.Struct<{
+            readonly d: Schema.String
+            readonly use: Schema.optional<Schema.Literals<readonly ["sig", "enc"]>>
+            readonly key_ops: Schema.optional<
+              Schema.$Array<
+                Schema.Literals<
+                  readonly ["sign", "verify", "encrypt", "decrypt", "wrapKey", "unwrapKey", "deriveKey", "deriveBits"]
                 >
               >
-              readonly use: Schema.optional<Schema.Literals<readonly ["sig", "enc"]>>
-              readonly key_ops: Schema.optional<
-                Schema.$Array<
-                  Schema.Literals<
-                    readonly ["sign", "verify", "encrypt", "decrypt", "wrapKey", "unwrapKey", "deriveKey", "deriveBits"]
+            >
+            readonly alg: Schema.optional<
+              Schema.Literals<
+                readonly [
+                  "HS256",
+                  "HS384",
+                  "HS512",
+                  "RS256",
+                  "RS384",
+                  "RS512",
+                  "ES256",
+                  "ES384",
+                  "ES512",
+                  "PS256",
+                  "PS384",
+                  "PS512"
+                ]
+              >
+            >
+            readonly kid: Schema.optional<Schema.String>
+            readonly x5u: Schema.optional<Schema.String>
+            readonly x5c: Schema.optional<Schema.$Array<Schema.String>>
+            readonly x5t: Schema.optional<Schema.String>
+            readonly "x5t#S256": Schema.optional<Schema.String>
+            readonly kty: Schema.Literal<"EC">
+            readonly crv: Schema.Literals<readonly ["P-256", "P-384", "P-521"]>
+            readonly x: Schema.String
+            readonly y: Schema.String
+          }>,
+          Schema.Struct<{
+            readonly use: Schema.optional<Schema.Literals<readonly ["sig", "enc"]>>
+            readonly key_ops: Schema.optional<
+              Schema.$Array<
+                Schema.Literals<
+                  readonly ["sign", "verify", "encrypt", "decrypt", "wrapKey", "unwrapKey", "deriveKey", "deriveBits"]
+                >
+              >
+            >
+            readonly alg: Schema.optional<
+              Schema.Literals<
+                readonly [
+                  "HS256",
+                  "HS384",
+                  "HS512",
+                  "RS256",
+                  "RS384",
+                  "RS512",
+                  "ES256",
+                  "ES384",
+                  "ES512",
+                  "PS256",
+                  "PS384",
+                  "PS512"
+                ]
+              >
+            >
+            readonly kid: Schema.optional<Schema.String>
+            readonly x5u: Schema.optional<Schema.String>
+            readonly x5c: Schema.optional<Schema.$Array<Schema.String>>
+            readonly x5t: Schema.optional<Schema.String>
+            readonly "x5t#S256": Schema.optional<Schema.String>
+            readonly kty: Schema.Literal<"EC">
+            readonly crv: Schema.Literals<readonly ["P-256", "P-384", "P-521"]>
+            readonly x: Schema.String
+            readonly y: Schema.String
+          }>,
+          Schema.Union<
+            readonly [
+              Schema.Struct<{
+                readonly d: Schema.String
+                readonly p: Schema.String
+                readonly q: Schema.String
+                readonly dp: Schema.String
+                readonly dq: Schema.String
+                readonly qi: Schema.String
+                readonly oth: Schema.optional<
+                  Schema.$Array<
+                    Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
                   >
                 >
-              >
-              readonly alg: Schema.optional<
-                Schema.Literals<
-                  readonly [
-                    "HS256",
-                    "HS384",
-                    "HS512",
-                    "RS256",
-                    "RS384",
-                    "RS512",
-                    "ES256",
-                    "ES384",
-                    "ES512",
-                    "PS256",
-                    "PS384",
-                    "PS512"
-                  ]
-                >
-              >
-              readonly kid: Schema.optional<Schema.String>
-              readonly x5u: Schema.optional<Schema.String>
-              readonly x5c: Schema.optional<Schema.$Array<Schema.String>>
-              readonly x5t: Schema.optional<Schema.String>
-              readonly "x5t#S256": Schema.optional<Schema.String>
-              readonly kty: Schema.Literal<"RSA">
-              readonly n: Schema.String
-              readonly e: Schema.String
-            }>,
-            Schema.Struct<{
-              readonly d: Schema.String
-              readonly oth: Schema.optional<
-                Schema.$Array<
-                  Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
-                >
-              >
-              readonly use: Schema.optional<Schema.Literals<readonly ["sig", "enc"]>>
-              readonly key_ops: Schema.optional<
-                Schema.$Array<
-                  Schema.Literals<
-                    readonly ["sign", "verify", "encrypt", "decrypt", "wrapKey", "unwrapKey", "deriveKey", "deriveBits"]
+                readonly use: Schema.optional<Schema.Literals<readonly ["sig", "enc"]>>
+                readonly key_ops: Schema.optional<
+                  Schema.$Array<
+                    Schema.Literals<
+                      readonly [
+                        "sign",
+                        "verify",
+                        "encrypt",
+                        "decrypt",
+                        "wrapKey",
+                        "unwrapKey",
+                        "deriveKey",
+                        "deriveBits"
+                      ]
+                    >
                   >
                 >
-              >
-              readonly alg: Schema.optional<
+                readonly alg: Schema.optional<
+                  Schema.Literals<
+                    readonly [
+                      "HS256",
+                      "HS384",
+                      "HS512",
+                      "RS256",
+                      "RS384",
+                      "RS512",
+                      "ES256",
+                      "ES384",
+                      "ES512",
+                      "PS256",
+                      "PS384",
+                      "PS512"
+                    ]
+                  >
+                >
+                readonly kid: Schema.optional<Schema.String>
+                readonly x5u: Schema.optional<Schema.String>
+                readonly x5c: Schema.optional<Schema.$Array<Schema.String>>
+                readonly x5t: Schema.optional<Schema.String>
+                readonly "x5t#S256": Schema.optional<Schema.String>
+                readonly kty: Schema.Literal<"RSA">
+                readonly n: Schema.String
+                readonly e: Schema.String
+              }>,
+              Schema.Struct<{
+                readonly d: Schema.String
+                readonly oth: Schema.optional<
+                  Schema.$Array<
+                    Schema.Struct<{ readonly r: Schema.String; readonly d: Schema.String; readonly t: Schema.String }>
+                  >
+                >
+                readonly use: Schema.optional<Schema.Literals<readonly ["sig", "enc"]>>
+                readonly key_ops: Schema.optional<
+                  Schema.$Array<
+                    Schema.Literals<
+                      readonly [
+                        "sign",
+                        "verify",
+                        "encrypt",
+                        "decrypt",
+                        "wrapKey",
+                        "unwrapKey",
+                        "deriveKey",
+                        "deriveBits"
+                      ]
+                    >
+                  >
+                >
+                readonly alg: Schema.optional<
+                  Schema.Literals<
+                    readonly [
+                      "HS256",
+                      "HS384",
+                      "HS512",
+                      "RS256",
+                      "RS384",
+                      "RS512",
+                      "ES256",
+                      "ES384",
+                      "ES512",
+                      "PS256",
+                      "PS384",
+                      "PS512"
+                    ]
+                  >
+                >
+                readonly kid: Schema.optional<Schema.String>
+                readonly x5u: Schema.optional<Schema.String>
+                readonly x5c: Schema.optional<Schema.$Array<Schema.String>>
+                readonly x5t: Schema.optional<Schema.String>
+                readonly "x5t#S256": Schema.optional<Schema.String>
+                readonly kty: Schema.Literal<"RSA">
+                readonly n: Schema.String
+                readonly e: Schema.String
+              }>
+            ]
+          >,
+          Schema.Struct<{
+            readonly use: Schema.optional<Schema.Literals<readonly ["sig", "enc"]>>
+            readonly key_ops: Schema.optional<
+              Schema.$Array<
                 Schema.Literals<
-                  readonly [
-                    "HS256",
-                    "HS384",
-                    "HS512",
-                    "RS256",
-                    "RS384",
-                    "RS512",
-                    "ES256",
-                    "ES384",
-                    "ES512",
-                    "PS256",
-                    "PS384",
-                    "PS512"
-                  ]
+                  readonly ["sign", "verify", "encrypt", "decrypt", "wrapKey", "unwrapKey", "deriveKey", "deriveBits"]
                 >
               >
-              readonly kid: Schema.optional<Schema.String>
-              readonly x5u: Schema.optional<Schema.String>
-              readonly x5c: Schema.optional<Schema.$Array<Schema.String>>
-              readonly x5t: Schema.optional<Schema.String>
-              readonly "x5t#S256": Schema.optional<Schema.String>
-              readonly kty: Schema.Literal<"RSA">
-              readonly n: Schema.String
-              readonly e: Schema.String
-            }>
-          ]
-        >,
-        Schema.Struct<{
-          readonly use: Schema.optional<Schema.Literals<readonly ["sig", "enc"]>>
-          readonly key_ops: Schema.optional<
-            Schema.$Array<
+            >
+            readonly alg: Schema.optional<
               Schema.Literals<
-                readonly ["sign", "verify", "encrypt", "decrypt", "wrapKey", "unwrapKey", "deriveKey", "deriveBits"]
+                readonly [
+                  "HS256",
+                  "HS384",
+                  "HS512",
+                  "RS256",
+                  "RS384",
+                  "RS512",
+                  "ES256",
+                  "ES384",
+                  "ES512",
+                  "PS256",
+                  "PS384",
+                  "PS512"
+                ]
               >
             >
-          >
-          readonly alg: Schema.optional<
-            Schema.Literals<
-              readonly [
-                "HS256",
-                "HS384",
-                "HS512",
-                "RS256",
-                "RS384",
-                "RS512",
-                "ES256",
-                "ES384",
-                "ES512",
-                "PS256",
-                "PS384",
-                "PS512"
-              ]
-            >
-          >
-          readonly kid: Schema.optional<Schema.String>
-          readonly x5u: Schema.optional<Schema.String>
-          readonly x5c: Schema.optional<Schema.$Array<Schema.String>>
-          readonly x5t: Schema.optional<Schema.String>
-          readonly "x5t#S256": Schema.optional<Schema.String>
-          readonly kty: Schema.Literal<"RSA">
-          readonly n: Schema.String
-          readonly e: Schema.String
-        }>,
-        Schema.Struct<{
-          readonly use: Schema.optional<Schema.Literals<readonly ["sig", "enc"]>>
-          readonly key_ops: Schema.optional<
-            Schema.$Array<
-              Schema.Literals<
-                readonly ["sign", "verify", "encrypt", "decrypt", "wrapKey", "unwrapKey", "deriveKey", "deriveBits"]
+            readonly kid: Schema.optional<Schema.String>
+            readonly x5u: Schema.optional<Schema.String>
+            readonly x5c: Schema.optional<Schema.$Array<Schema.String>>
+            readonly x5t: Schema.optional<Schema.String>
+            readonly "x5t#S256": Schema.optional<Schema.String>
+            readonly kty: Schema.Literal<"RSA">
+            readonly n: Schema.String
+            readonly e: Schema.String
+          }>,
+          Schema.Struct<{
+            readonly use: Schema.optional<Schema.Literals<readonly ["sig", "enc"]>>
+            readonly key_ops: Schema.optional<
+              Schema.$Array<
+                Schema.Literals<
+                  readonly ["sign", "verify", "encrypt", "decrypt", "wrapKey", "unwrapKey", "deriveKey", "deriveBits"]
+                >
               >
             >
-          >
-          readonly alg: Schema.optional<
-            Schema.Literals<
-              readonly [
-                "HS256",
-                "HS384",
-                "HS512",
-                "RS256",
-                "RS384",
-                "RS512",
-                "ES256",
-                "ES384",
-                "ES512",
-                "PS256",
-                "PS384",
-                "PS512"
-              ]
+            readonly alg: Schema.optional<
+              Schema.Literals<
+                readonly [
+                  "HS256",
+                  "HS384",
+                  "HS512",
+                  "RS256",
+                  "RS384",
+                  "RS512",
+                  "ES256",
+                  "ES384",
+                  "ES512",
+                  "PS256",
+                  "PS384",
+                  "PS512"
+                ]
+              >
             >
-          >
-          readonly kid: Schema.optional<Schema.String>
-          readonly x5u: Schema.optional<Schema.String>
-          readonly x5c: Schema.optional<Schema.$Array<Schema.String>>
-          readonly x5t: Schema.optional<Schema.String>
-          readonly "x5t#S256": Schema.optional<Schema.String>
-          readonly kty: Schema.Literal<"oct">
-          readonly k: Schema.String
-        }>
-      ]
-    >
+            readonly kid: Schema.optional<Schema.String>
+            readonly x5u: Schema.optional<Schema.String>
+            readonly x5c: Schema.optional<Schema.$Array<Schema.String>>
+            readonly x5t: Schema.optional<Schema.String>
+            readonly "x5t#S256": Schema.optional<Schema.String>
+            readonly kty: Schema.Literal<"oct">
+            readonly k: Schema.String
+          }>
+        ]
+      >
+    >,
+    Schema.$Array<Schema.Unknown>,
+    never,
+    never
   >
 }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L348)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwk.ts#L354)
 
 Since v1.0.0
 

@@ -4,11 +4,11 @@
  * {@link make} realizes a provider registration into two route handlers'
  * worth of logic: `beginAuthorization` answers the login route with a
  * redirect to the provider and drops the short-lived transaction cookies
- * (state, PKCE verifier, and an optional opaque payload such as a return-to
- * path), and `completeAuthorization` answers the callback route by
- * validating the echoed state against those cookies, exchanging the code,
- * and verifying the id token - handing back the claims for the app to turn
- * into its own session:
+ * (state, PKCE verifier, id token nonce, and an optional opaque payload such
+ * as a return-to path), and `completeAuthorization` answers the callback
+ * route by validating the echoed state against those cookies, exchanging the
+ * code, and verifying the id token (including its nonce) - handing back the
+ * claims for the app to turn into its own session:
  *
  * ```ts
  * import { Effect, Layer, Option } from "effect"
@@ -32,11 +32,15 @@
  *         .beginAuthorization({ payload: "/dashboard" })
  *         .pipe(Effect.catch(() => Effect.succeed(HttpServerResponse.redirect("/login?error=start_failed"))))
  *
+ *     // The payload rides a cookie the browser can rewrite: only ever follow
+ *     // it to a local path, never to an absolute or protocol-relative URL.
+ *     const localPath = (payload: string) => (payload.startsWith("/") && !payload.startsWith("//") ? payload : "/")
+ *
  *     const callback = google.completeAuthorization.pipe(
  *         Effect.map(({ claims, payload }) =>
  *             // Create the local session for claims.sub here, then land the
  *             // visitor back where they started.
- *             HttpServerResponse.redirect(Option.getOrElse(payload, () => `/welcome/${claims.sub}`))
+ *             HttpServerResponse.redirect(Option.match(payload, { onNone: () => `/welcome/${claims.sub}`, onSome: localPath }))
  *         ),
  *         Effect.catch((error) => Effect.succeed(HttpServerResponse.redirect(`/login?error=${error.reason}`))),
  *         Effect.flatMap(google.expireTransactionCookies),
@@ -154,7 +158,7 @@ export interface RelyingParty {
      */
     readonly payload: Effect.Effect<Option.Option<string>, never, HttpServerRequest.HttpServerRequest>;
 
-    /** Expires the spent state, verifier, and payload cookies on a response. */
+    /** Expires the spent state, verifier, nonce, and payload cookies on a response. */
     readonly expireTransactionCookies: (
         response: HttpServerResponse.HttpServerResponse
     ) => Effect.Effect<HttpServerResponse.HttpServerResponse, Cookies.CookiesError>;
@@ -167,7 +171,7 @@ export interface RelyingParty {
  * request.
  *
  * Cookie behavior is adjustable without being escapable: `prefix`
- * namespaces the three transaction cookies (mandatory when one app talks to
+ * namespaces the four transaction cookies (mandatory when one app talks to
  * several providers), `name` lets an app-wide cookie policy rewrite the
  * final names (a `__Host-` prefix, an environment suffix), and `secure`
  * exists solely for plain-http local development. The cookies are always
@@ -205,9 +209,9 @@ export const make = Effect.fnUntraced(function* (options: {
         | undefined;
 }) {
     const httpClient = yield* HttpClient.HttpClient;
-    const jwks = (yield* Oidc.cachedJwks(options.jwksUri, options.jwksTtl)).pipe(
-        Effect.provideService(HttpClient.HttpClient, httpClient)
-    );
+    const jwksCache = yield* Oidc.jwksCache(options.jwksUri, { ttl: options.jwksTtl });
+    const jwks = Effect.provideService(jwksCache.get, HttpClient.HttpClient, httpClient);
+    const refreshJwks = Effect.provideService(jwksCache.refresh, HttpClient.HttpClient, httpClient);
 
     const clientSecret =
         typeof options.clientSecret === "string"
@@ -221,6 +225,7 @@ export const make = Effect.fnUntraced(function* (options: {
     const secure = options.cookies?.secure ?? true;
     const stateCookieName = cookieName(`${prefix}_state`);
     const verifierCookieName = cookieName(`${prefix}_code_verifier`);
+    const nonceCookieName = cookieName(`${prefix}_nonce`);
     const payloadCookieName = cookieName(`${prefix}_payload`);
 
     const setOptions = {
@@ -241,6 +246,10 @@ export const make = Effect.fnUntraced(function* (options: {
     const beginAuthorization: RelyingParty["beginAuthorization"] = Effect.fnUntraced(function* (beginOptions) {
         const pkce = yield* Oidc.generatePkce();
         const state = Encoding.encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)));
+        // OIDC Core Section 3.1.2.1: the nonce binds the id token to this
+        // browser session, so a captured id token cannot be replayed into
+        // another sign-in.
+        const nonce = Encoding.encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)));
 
         const authorizationRequest = Oidc.authorizationRequest({
             authorizationEndpoint: options.authorizationEndpoint,
@@ -249,6 +258,7 @@ export const make = Effect.fnUntraced(function* (options: {
             scopes: options.scopes,
             state,
             codeChallenge: pkce.challenge,
+            nonce,
         });
 
         const authorizationUrl = yield* Effect.fromResult(
@@ -262,6 +272,7 @@ export const make = Effect.fnUntraced(function* (options: {
         const transactionCookies: Array<readonly [name: string, value: string, options: typeof setOptions]> = [
             [stateCookieName, state, setOptions],
             [verifierCookieName, pkce.verifier, setOptions],
+            [nonceCookieName, nonce, setOptions],
         ];
         if (beginOptions?.payload !== undefined) {
             transactionCookies.push([payloadCookieName, beginOptions.payload, setOptions]);
@@ -280,6 +291,7 @@ export const make = Effect.fnUntraced(function* (options: {
         Effect.succeed(response).pipe(
             Effect.flatMap(HttpServerResponse.expireCookie(stateCookieName, expireOptions)),
             Effect.flatMap(HttpServerResponse.expireCookie(verifierCookieName, expireOptions)),
+            Effect.flatMap(HttpServerResponse.expireCookie(nonceCookieName, expireOptions)),
             Effect.flatMap(HttpServerResponse.expireCookie(payloadCookieName, expireOptions))
         );
 
@@ -311,10 +323,16 @@ export const make = Effect.fnUntraced(function* (options: {
         }
 
         // The state cookie must match the state the provider echoed back,
-        // and the verifier must have survived alongside it
+        // and the verifier and nonce must have survived alongside it
         const stateCookie = request.cookies[stateCookieName];
         const verifierCookie = request.cookies[verifierCookieName];
-        if (stateCookie === undefined || verifierCookie === undefined || stateCookie !== urlParams.state) {
+        const nonceCookie = request.cookies[nonceCookieName];
+        if (
+            stateCookie === undefined ||
+            verifierCookie === undefined ||
+            nonceCookie === undefined ||
+            stateCookie !== urlParams.state
+        ) {
             return yield* new CallbackError({ reason: "StateMismatch" });
         }
 
@@ -330,15 +348,23 @@ export const make = Effect.fnUntraced(function* (options: {
             Effect.catch(() => new CallbackError({ reason: "ExchangeFailed" }))
         );
 
+        const verify = (fetched: Schema.Schema.Type<typeof Jwt.JwksSchema>) =>
+            Oidc.verifyIdToken({
+                jwks: fetched,
+                clientId: options.clientId,
+                issuer: options.issuer,
+                idToken: tokens.id_token ?? "",
+                algorithms: options.algorithms,
+                nonce: nonceCookie,
+            });
+        // An unknown `kid` most likely means the provider rotated its keys:
+        // refetch (rate limited by the cache) and try once more.
         const claims = yield* jwks.pipe(
-            Effect.flatMap((fetched) =>
-                Oidc.verifyIdToken({
-                    jwks: fetched,
-                    clientId: options.clientId,
-                    issuer: options.issuer,
-                    idToken: tokens.id_token ?? "",
-                    algorithms: options.algorithms,
-                })
+            Effect.flatMap(verify),
+            Effect.catch((error) =>
+                error._tag === "JwtError" && error.reason === "UnknownKey"
+                    ? refreshJwks.pipe(Effect.flatMap(verify))
+                    : Effect.fail(error)
             ),
             Effect.catch(() => new CallbackError({ reason: "InvalidIdToken" }))
         );

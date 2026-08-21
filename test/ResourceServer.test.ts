@@ -33,6 +33,7 @@ const makeHarness = Effect.fnUntraced(function* (harnessOptions?: {
     readonly startUnhealthy?: boolean;
 }) {
     const { privateJwk, publicJwk } = yield* Jwt.generateSigningKey();
+    let published = publicJwk;
 
     let healthy = harnessOptions?.startUnhealthy !== true;
     let jwksFetches = 0;
@@ -41,7 +42,7 @@ const makeHarness = Effect.fnUntraced(function* (harnessOptions?: {
         HttpClient.make((request) => {
             jwksFetches += 1;
             return Effect.succeed(
-                HttpClientResponse.fromWeb(request, healthy ? Response.json({ keys: [publicJwk] }) : Response.json({}))
+                HttpClientResponse.fromWeb(request, healthy ? Response.json({ keys: [published] }) : Response.json({}))
             );
         })
     );
@@ -56,9 +57,9 @@ const makeHarness = Effect.fnUntraced(function* (harnessOptions?: {
     );
     const authorization = Context.get(context, ResourceServer.Authorization);
 
-    const issueToken = (scope: string) =>
+    const issueToken = (scope: string, signingKey = privateJwk) =>
         Oidc.issueAccessToken({
-            privateJwk,
+            privateJwk: signingKey,
             issuer,
             subject: "user-123",
             audience,
@@ -120,9 +121,14 @@ const makeHarness = Effect.fnUntraced(function* (harnessOptions?: {
     };
 
     return {
+        privateJwk,
         issueToken,
         call,
         jwksFetches: () => jwksFetches,
+        /** Rotates the key the stub JWKS endpoint publishes. */
+        publish: (jwk: typeof publicJwk) => {
+            published = jwk;
+        },
         setHealthy: (value: boolean) => {
             healthy = value;
         },
@@ -310,6 +316,60 @@ it.live("requireScopes guards individual handlers against the granted scopes", (
         );
         expect(forbidden._tag).toBe("Forbidden");
     })
+);
+
+it.live("refuses the issuer's non-access-token JWTs (typ pinned to at+jwt)", () =>
+    Effect.gen(function* () {
+        const harness = yield* makeHarness();
+
+        // Same issuer, same key, same audience and claims - but minted as a
+        // plain `typ: "JWT"`, as an id token or any other JWT would be.
+        const nowSeconds = 1_700_000_000;
+        const lookalike = yield* Jwt.sign({
+            privateJwk: harness.privateJwk,
+            payload: {
+                iss: issuer,
+                sub: "user-123",
+                aud: audience,
+                exp: nowSeconds + 10 * 365 * 24 * 3600,
+                iat: nowSeconds,
+                scope: "notes",
+                client_id: "client-abc",
+            },
+        });
+        const refused = yield* Effect.flip(harness.call(lookalike, listNotes));
+        expect(refused._tag).toBe("Unauthorized");
+
+        const accessToken = yield* harness.issueToken("notes");
+        const user = yield* harness.call(accessToken, listNotes);
+        expect(user.sub).toBe("user-123");
+    }).pipe(Effect.scoped)
+);
+
+it.live("refetches the jwks once for a token signed by a freshly rotated key", () =>
+    Effect.gen(function* () {
+        const harness = yield* makeHarness();
+
+        // Warm the cache with the original key.
+        const user = yield* harness.call(yield* harness.issueToken("notes"), listNotes);
+        expect(user.sub).toBe("user-123");
+        expect(harness.jwksFetches()).toBe(1);
+
+        // The issuer rotates and signs with a key the cache has never seen.
+        const rotated = yield* Jwt.generateSigningKey();
+        harness.publish(rotated.publicJwk);
+        const fresh = yield* harness.call(yield* harness.issueToken("notes", rotated.privateJwk), listNotes);
+        expect(fresh.sub).toBe("user-123");
+        expect(harness.jwksFetches()).toBe(2);
+
+        // A second unknown kid inside the refresh window does not fetch again.
+        const stranger = yield* Jwt.generateSigningKey();
+        const refused = yield* Effect.flip(
+            harness.call(yield* harness.issueToken("notes", stranger.privateJwk), listNotes)
+        );
+        expect(refused._tag).toBe("Unauthorized");
+        expect(harness.jwksFetches()).toBe(2);
+    }).pipe(Effect.scoped)
 );
 
 it.live("verifies against statically provided jwks without ever fetching", () =>

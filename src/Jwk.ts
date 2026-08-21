@@ -15,7 +15,7 @@
  * @see https://www.rfc-editor.org/rfc/rfc7518#section-6 - Cryptographic Algorithms for Keys
  */
 
-import { Function, Schema } from "effect";
+import { Function, Result, Schema, SchemaGetter } from "effect";
 
 import { JwsAlgorithm } from "./Jwa.ts";
 
@@ -341,24 +341,42 @@ export const Jwk = Schema.Union([EcPrivateKey, EcPublicKey, RsaPrivateKey, RsaPu
  * A JWK Set as defined in RFC 7517 Section 5. A JSON object that represents
  * a set of JWKs. The "keys" member is required and must be an array of JWKs.
  *
+ * Keys this module does not understand (an unsupported `kty` such as "OKP",
+ * an encryption key carrying a JWE `alg` such as "RSA-OAEP", or a malformed
+ * entry) are skipped on decode rather than failing the whole set, as RFC
+ * 7517 Section 5 recommends - a provider publishing one exotic key next to
+ * its signing keys must not take every verification down with it.
+ *
  * @since 1.0.0
  * @category JWK Set
  * @see https://www.rfc-editor.org/rfc/rfc7517#section-5
  */
 export const JwkSet = Schema.Struct({
     /** @see https://www.rfc-editor.org/rfc/rfc7517#section-5.1 */
-    keys: Schema.Array(Jwk),
+    keys: Schema.Array(Schema.Unknown).pipe(
+        Schema.decodeTo(Schema.Array(Jwk), {
+            decode: SchemaGetter.transform((keys) =>
+                keys.flatMap((key) => {
+                    const decoded = Schema.decodeUnknownResult(Jwk)(key);
+                    return Result.isSuccess(decoded) ? [decoded.success] : [];
+                })
+            ),
+            encode: SchemaGetter.passthroughSupertype(),
+        })
+    ),
 }).annotate({
     title: "JWK Set",
     expected: "a JSON object with a 'keys' member containing an array of JWKs",
-    description: "A set of JSON Web Keys as defined in RFC 7517 Section 5",
+    description: "A set of JSON Web Keys as defined in RFC 7517 Section 5; unrecognized keys are skipped",
 });
 
 /**
  * Returns whether a JWK may verify a signature under the given JWS algorithm:
- * the key type (and EC curve) must match the algorithm family, and a key
- * marked for encryption (`use: "enc"`) is rejected. Gate key selection with
- * this so a token cannot steer a key of one family into an incompatible
+ * the key type (and EC curve) must match the algorithm family, a key marked
+ * for encryption (`use: "enc"`) is rejected, a key that names its own `alg`
+ * (RFC 7517 Section 4.4) is only used for that algorithm, and a key that
+ * lists `key_ops` (Section 4.3) must include `verify`. Gate key selection
+ * with this so a token cannot steer a key of one family into an incompatible
  * algorithm (the classic asymmetric/symmetric confusion).
  *
  * @since 1.0.0
@@ -366,6 +384,8 @@ export const JwkSet = Schema.Struct({
  */
 export const isCompatibleWith = (alg: (typeof JwsAlgorithm)["Type"], jwk: (typeof Jwk)["Type"]): boolean => {
     if (jwk.use === "enc") return false;
+    if (jwk.alg !== undefined && jwk.alg !== alg) return false;
+    if (jwk.key_ops !== undefined && !jwk.key_ops.includes("verify")) return false;
     switch (alg) {
         case "ES256":
             return jwk.kty === "EC" && jwk.crv === "P-256";

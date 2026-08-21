@@ -181,7 +181,12 @@ export const Compact = Schema.TemplateLiteralParser([
  * @since 1.0.0
  * @category Errors
  */
-export type JweErrorReason = "Malformed" | "UnsupportedAlgorithm" | "KeyManagementFailed" | "DecryptionFailed";
+export type JweErrorReason =
+    | "Malformed"
+    | "UnsupportedAlgorithm"
+    | "KeyManagementFailed"
+    | "EncryptionFailed"
+    | "DecryptionFailed";
 
 /**
  * @since 1.0.0
@@ -204,11 +209,14 @@ const base64Url = (bytes: Uint8Array): string => {
 };
 
 /**
- * Decodes an unpadded base64url string to bytes.
+ * Decodes an unpadded base64url string to bytes. Strict: only the base64url
+ * alphabet is accepted (no padding, no standard-alphabet `+`/`/`, no
+ * whitespace), so a given byte sequence has exactly one accepted encoding.
  *
  * @internal
  */
 const fromBase64Url = (value: string): Uint8Array => {
+    if (!/^[A-Za-z0-9_-]*$/.test(value) || value.length % 4 === 1) throw new Error("invalid base64url");
     const padded = value.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (value.length % 4)) % 4);
     const binary = atob(padded);
     const bytes = new Uint8Array(binary.length);
@@ -284,10 +292,11 @@ const contentEncrypt = Effect.fnUntraced(function* (
     plaintext: Uint8Array,
     aad: Uint8Array
 ) {
+    const attempt = <A>(thunk: () => Promise<A>) => Effect.tryPromise({ try: thunk, catch: die("EncryptionFailed") });
     if (params.kind === "gcm") {
-        const key = yield* Effect.promise(() => crypto.subtle.importKey("raw", u8(cek), "AES-GCM", false, ["encrypt"]));
+        const key = yield* attempt(() => crypto.subtle.importKey("raw", u8(cek), "AES-GCM", false, ["encrypt"]));
         const combined = new Uint8Array(
-            yield* Effect.promise(() =>
+            yield* attempt(() =>
                 crypto.subtle.encrypt(
                     { name: "AES-GCM", iv: u8(iv), additionalData: u8(aad), tagLength: 128 },
                     key,
@@ -300,17 +309,15 @@ const contentEncrypt = Effect.fnUntraced(function* (
 
     const macKey = cek.slice(0, params.macBytes);
     const encKey = cek.slice(params.macBytes);
-    const aesKey = yield* Effect.promise(() =>
-        crypto.subtle.importKey("raw", u8(encKey), "AES-CBC", false, ["encrypt"])
-    );
+    const aesKey = yield* attempt(() => crypto.subtle.importKey("raw", u8(encKey), "AES-CBC", false, ["encrypt"]));
     const ciphertext = new Uint8Array(
-        yield* Effect.promise(() => crypto.subtle.encrypt({ name: "AES-CBC", iv: u8(iv) }, aesKey, u8(plaintext)))
+        yield* attempt(() => crypto.subtle.encrypt({ name: "AES-CBC", iv: u8(iv) }, aesKey, u8(plaintext)))
     );
     const macInput = concatBytes(aad, iv, ciphertext, uint64BE(aad.length * 8));
-    const hmacKey = yield* Effect.promise(() =>
+    const hmacKey = yield* attempt(() =>
         crypto.subtle.importKey("raw", u8(macKey), { name: "HMAC", hash: params.hash }, false, ["sign"])
     );
-    const mac = new Uint8Array(yield* Effect.promise(() => crypto.subtle.sign("HMAC", hmacKey, u8(macInput))));
+    const mac = new Uint8Array(yield* attempt(() => crypto.subtle.sign("HMAC", hmacKey, u8(macInput))));
     return { ciphertext, tag: mac.slice(0, params.tagBytes) };
 });
 
@@ -404,10 +411,16 @@ const concatKdf = Effect.fnUntraced(function* (
 /** @internal */
 const aesKwWrap = (kek: CryptoKey, cek: Uint8Array) =>
     Effect.gen(function* () {
-        const cekKey = yield* Effect.promise(() =>
-            crypto.subtle.importKey("raw", u8(cek), { name: "HMAC", hash: "SHA-256" }, true, ["sign"])
+        const cekKey = yield* Effect.tryPromise({
+            try: () => crypto.subtle.importKey("raw", u8(cek), { name: "HMAC", hash: "SHA-256" }, true, ["sign"]),
+            catch: die("KeyManagementFailed"),
+        });
+        return new Uint8Array(
+            yield* Effect.tryPromise({
+                try: () => crypto.subtle.wrapKey("raw", cekKey, kek, "AES-KW"),
+                catch: die("KeyManagementFailed"),
+            })
         );
-        return new Uint8Array(yield* Effect.promise(() => crypto.subtle.wrapKey("raw", cekKey, kek, "AES-KW")));
     });
 
 /** @internal */
@@ -432,6 +445,7 @@ const aesKwUnwrap = (kek: CryptoKey, wrapped: Uint8Array) =>
 const ecKeyInfo = (key: CryptoKey) => {
     const namedCurve =
         "namedCurve" in key.algorithm && typeof key.algorithm.namedCurve === "string" ? key.algorithm.namedCurve : "";
+    if (namedCurve === "") return new JweError({ reason: "KeyManagementFailed" });
     // deriveBits length must be byte-aligned; P-521 shared secrets are 66 bytes.
     const bitLength = namedCurve === "P-256" ? 256 : namedCurve === "P-384" ? 384 : 528;
     return { namedCurve, bitLength };
@@ -453,9 +467,11 @@ const keyManagementEncrypt = Effect.fnUntraced(function* (
         ...(options.apu.length > 0 ? { apu: base64Url(options.apu) } : {}),
         ...(options.apv.length > 0 ? { apv: base64Url(options.apv) } : {}),
     };
+    const attempt = <A>(thunk: () => Promise<A>) =>
+        Effect.tryPromise({ try: thunk, catch: die("KeyManagementFailed") });
     switch (alg) {
         case "dir": {
-            const cek = new Uint8Array(yield* Effect.promise(() => crypto.subtle.exportKey("raw", key)));
+            const cek = new Uint8Array(yield* attempt(() => crypto.subtle.exportKey("raw", key)));
             if (cek.length !== cekBytes) return yield* new JweError({ reason: "KeyManagementFailed" });
             return { cek, encryptedKey: new Uint8Array(0), headerExtras: {} };
         }
@@ -483,7 +499,7 @@ const keyManagementEncrypt = Effect.fnUntraced(function* (
             const cek = randomBytes(cekBytes);
             const iv = randomBytes(12);
             const combined = new Uint8Array(
-                yield* Effect.promise(() =>
+                yield* attempt(() =>
                     crypto.subtle.encrypt({ name: "AES-GCM", iv: u8(iv), tagLength: 128 }, key, u8(cek))
                 )
             );
@@ -497,16 +513,18 @@ const keyManagementEncrypt = Effect.fnUntraced(function* (
         case "ECDH-ES+A128KW":
         case "ECDH-ES+A192KW":
         case "ECDH-ES+A256KW": {
-            const { bitLength, namedCurve } = ecKeyInfo(key);
-            const ephemeral = yield* Effect.promise(() =>
+            const info = ecKeyInfo(key);
+            if (info instanceof JweError) return yield* info;
+            const { bitLength, namedCurve } = info;
+            const ephemeral = yield* attempt(() =>
                 crypto.subtle.generateKey({ name: "ECDH", namedCurve }, true, ["deriveBits"])
             );
             const sharedSecret = new Uint8Array(
-                yield* Effect.promise(() =>
+                yield* attempt(() =>
                     crypto.subtle.deriveBits({ name: "ECDH", public: key }, ephemeral.privateKey, bitLength)
                 )
             );
-            const epk = yield* Effect.promise(() => crypto.subtle.exportKey("jwk", ephemeral.publicKey));
+            const epk = yield* attempt(() => crypto.subtle.exportKey("jwk", ephemeral.publicKey));
             const publicEpk = { kty: epk.kty, crv: epk.crv, x: epk.x, y: epk.y };
             if (alg === "ECDH-ES") {
                 // ECDH-ES direct: algId is the content-encryption algorithm.
@@ -515,7 +533,7 @@ const keyManagementEncrypt = Effect.fnUntraced(function* (
             }
             // ECDH-ES+AKW: algId is the key-management algorithm; derived bits are the KEK.
             const kekRaw = yield* concatKdf(sharedSecret, aesKwBits(alg), alg, options.apu, options.apv);
-            const kek = yield* Effect.promise(() =>
+            const kek = yield* attempt(() =>
                 crypto.subtle.importKey("raw", u8(kekRaw), "AES-KW", false, ["wrapKey", "unwrapKey"])
             );
             const cek = randomBytes(cekBytes);
@@ -535,7 +553,7 @@ const keyManagementEncrypt = Effect.fnUntraced(function* (
             // Node's WebCrypto cannot deriveKey directly into an AES-KW key, so
             // derive the raw key-encryption-key bits and import them.
             const kekBits = new Uint8Array(
-                yield* Effect.promise(() =>
+                yield* attempt(() =>
                     crypto.subtle.deriveBits(
                         { name: "PBKDF2", salt: u8(salt), iterations: options.p2c, hash },
                         key,
@@ -543,7 +561,7 @@ const keyManagementEncrypt = Effect.fnUntraced(function* (
                     )
                 )
             );
-            const kek = yield* Effect.promise(() =>
+            const kek = yield* attempt(() =>
                 crypto.subtle.importKey("raw", u8(kekBits), "AES-KW", false, ["wrapKey", "unwrapKey"])
             );
             const cek = randomBytes(cekBytes);
@@ -617,7 +635,9 @@ const keyManagementDecrypt = Effect.fnUntraced(function* (
             // import rejects an epk whose "crv" does not match (and validates the
             // point lies on the curve), which is what defeats invalid-curve attacks;
             // a mismatch surfaces here as a typed KeyManagementFailed, not a defect.
-            const { bitLength, namedCurve } = ecKeyInfo(key);
+            const info = ecKeyInfo(key);
+            if (info instanceof JweError) return yield* info;
+            const { bitLength, namedCurve } = info;
             const ephemeralPublic = yield* Effect.tryPromise({
                 try: () => crypto.subtle.importKey("jwk", toJsonWebKey(epk), { name: "ECDH", namedCurve }, false, []),
                 catch: die("KeyManagementFailed"),
@@ -655,7 +675,10 @@ const keyManagementDecrypt = Effect.fnUntraced(function* (
                 : alg.startsWith("PBES2-HS384")
                   ? "SHA-384"
                   : "SHA-512";
-            const salt = concatBytes(textEncoder.encode(alg), new Uint8Array([0]), yield* decodeB64(header.p2s));
+            // RFC 7518 Section 4.8.1.1: the salt input must be at least 8 octets.
+            const p2s = yield* decodeB64(header.p2s);
+            if (p2s.length < 8) return yield* new JweError({ reason: "Malformed" });
+            const salt = concatBytes(textEncoder.encode(alg), new Uint8Array([0]), p2s);
             const kekBits = new Uint8Array(
                 yield* Effect.tryPromise({
                     try: () =>
@@ -778,16 +801,30 @@ export const decrypt = Effect.fnUntraced(function* (options: {
 
     const params = encryptionParameters(header.enc);
     const encryptedKey = yield* decodeB64(parts.encryptedKey);
-    const cek = yield* keyManagementDecrypt(header, options.key, encryptedKey, params.cekBytes, {
+    const unwrapped = yield* keyManagementDecrypt(header, options.key, encryptedKey, params.cekBytes, {
         maxPBES2Count: options.maxPBES2Count ?? defaultMaxPBES2Count,
-    });
+    }).pipe(
+        // RFC 7516 Section 11.5: for RSA key encryption, a failed CEK
+        // decryption must not short-circuit - continue with a random CEK so
+        // the attacker-visible outcome (and timing) is the same as a wrong
+        // CEK, closing the padding/length oracle on the encrypted key.
+        Effect.catch((error) =>
+            error.reason === "DecryptionFailed" && header.alg.startsWith("RSA-OAEP")
+                ? Effect.succeed(randomBytes(params.cekBytes))
+                : Effect.fail(error)
+        )
+    );
     // A key-management algorithm can yield a CEK of the wrong size - e.g. an
     // attacker RSA-OAEP-encrypts an arbitrary-length key to the recipient's
-    // public key. Reject it before it reaches AES importKey in contentDecrypt,
-    // which would otherwise reject and surface as an unhandled defect.
-    if (cek.length !== params.cekBytes) {
-        return yield* new JweError({ reason: "DecryptionFailed" });
-    }
+    // public key. Keep it away from AES importKey (which would reject and
+    // surface as a defect): for RSA, substitute a random CEK as above; for
+    // everything else fail closed.
+    const cek =
+        unwrapped.length === params.cekBytes
+            ? unwrapped
+            : header.alg.startsWith("RSA-OAEP")
+              ? randomBytes(params.cekBytes)
+              : yield* new JweError({ reason: "DecryptionFailed" });
 
     const aad = textEncoder.encode(parts.protected);
     const plaintext = yield* contentDecrypt(

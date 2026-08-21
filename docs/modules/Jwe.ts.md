@@ -303,7 +303,7 @@ declare const decrypt: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L741)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L768)
 
 Since v1.0.0
 
@@ -337,7 +337,7 @@ declare const encrypt: (options: {
 }) => Effect.Effect<string, JweError, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L689)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L716)
 
 Since v1.0.0
 
@@ -351,7 +351,7 @@ Since v1.0.0
 declare class JweError
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L190)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L195)
 
 Since v1.0.0
 
@@ -362,7 +362,8 @@ The reasons a JWE operation can fail.
 **Signature**
 
 ```ts
-type JweErrorReason = "Malformed" | "UnsupportedAlgorithm" | "KeyManagementFailed" | "DecryptionFailed"
+type JweErrorReason =
+  "Malformed" | "UnsupportedAlgorithm" | "KeyManagementFailed" | "EncryptionFailed" | "DecryptionFailed"
 ```
 
 [Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Jwe.ts#L184)

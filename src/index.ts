@@ -132,11 +132,11 @@ export * as Oidc from "./Oidc.ts"
  * {@link make} realizes a provider registration into two route handlers'
  * worth of logic: `beginAuthorization` answers the login route with a
  * redirect to the provider and drops the short-lived transaction cookies
- * (state, PKCE verifier, and an optional opaque payload such as a return-to
- * path), and `completeAuthorization` answers the callback route by
- * validating the echoed state against those cookies, exchanging the code,
- * and verifying the id token - handing back the claims for the app to turn
- * into its own session:
+ * (state, PKCE verifier, id token nonce, and an optional opaque payload such
+ * as a return-to path), and `completeAuthorization` answers the callback
+ * route by validating the echoed state against those cookies, exchanging the
+ * code, and verifying the id token (including its nonce) - handing back the
+ * claims for the app to turn into its own session:
  *
  * ```ts
  * import { Effect, Layer, Option } from "effect"
@@ -160,11 +160,15 @@ export * as Oidc from "./Oidc.ts"
  *         .beginAuthorization({ payload: "/dashboard" })
  *         .pipe(Effect.catch(() => Effect.succeed(HttpServerResponse.redirect("/login?error=start_failed"))))
  *
+ *     // The payload rides a cookie the browser can rewrite: only ever follow
+ *     // it to a local path, never to an absolute or protocol-relative URL.
+ *     const localPath = (payload: string) => (payload.startsWith("/") && !payload.startsWith("//") ? payload : "/")
+ *
  *     const callback = google.completeAuthorization.pipe(
  *         Effect.map(({ claims, payload }) =>
  *             // Create the local session for claims.sub here, then land the
  *             // visitor back where they started.
- *             HttpServerResponse.redirect(Option.getOrElse(payload, () => `/welcome/${claims.sub}`))
+ *             HttpServerResponse.redirect(Option.match(payload, { onNone: () => `/welcome/${claims.sub}`, onSome: localPath }))
  *         ),
  *         Effect.catch((error) => Effect.succeed(HttpServerResponse.redirect(`/login?error=${error.reason}`))),
  *         Effect.flatMap(google.expireTransactionCookies),
