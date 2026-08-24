@@ -159,7 +159,7 @@ const acceptedScopes = (group: HttpApiGroup.Top, endpoint: HttpApiEndpoint.Top):
  * @since 1.0.0
  * @category Layers
  */
-export const layer = <RRevoked = never>(options: {
+export const layer = <ERevoked = never, RRevoked = never>(options: {
     readonly issuer: string;
     readonly audience: string;
     /**
@@ -197,11 +197,17 @@ export const layer = <RRevoked = never>(options: {
      * Error`. Cache the underlying denylist as aggressively as your
      * revocation latency allows. Without this option tokens stay valid
      * until they expire.
+     *
+     * The predicate's own error type is inferred rather than fixed, so a
+     * denylist backed by a database keeps its `SqlError` instead of having it
+     * widened away. Every failure is still answered as
+     * `500 Internal Server Error`; the type is for the caller's benefit, not
+     * this layer's.
      */
     readonly revoked?:
         | ((
               claims: Schema.Schema.Type<typeof Oidc.AccessTokenClaimsSchema>
-          ) => Effect.Effect<boolean, unknown, RRevoked>)
+          ) => Effect.Effect<boolean, ERevoked, RRevoked>)
         | undefined;
 }): Layer.Layer<Authorization, never, HttpClient.HttpClient | RRevoked> =>
     Layer.effect(
@@ -259,9 +265,9 @@ export const layer = <RRevoked = never>(options: {
                     );
 
                     if (options.revoked !== undefined) {
-                        // `revoked` is a caller-supplied predicate, so its error channel is intentionally
-                        // open; every failure is folded into InternalServerError immediately below.
-                        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
+                        // Whatever the predicate fails with, the caller learns
+                        // nothing from it: a revocation check that cannot answer
+                        // is a server problem, not a client one.
                         const revoked = yield* options.revoked(accessClaims).pipe(
                             Effect.provideContext(services),
                             Effect.catch(() => new HttpApiError.InternalServerError())
