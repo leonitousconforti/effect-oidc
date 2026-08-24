@@ -23,10 +23,10 @@ const notes = HttpApiGroup.make("notes").add(listNotes, createNote);
  * the JWKS, plus helpers to mint tokens for it and to invoke the bearer
  * security scheme exactly as the `HttpApi` builder would.
  */
-const makeHarness = Effect.fnUntraced(function* (harnessOptions?: {
+const makeHarness = Effect.fnUntraced(function* <ERevoked = never>(harnessOptions?: {
     readonly revoked?: (
         claims: Schema.Schema.Type<typeof Oidc.AccessTokenClaimsSchema>
-    ) => Effect.Effect<boolean, unknown>;
+    ) => Effect.Effect<boolean, ERevoked>;
     /** Hand the harness JWKS to the layer statically instead of serving it over the stub client. */
     readonly staticJwks?: boolean;
     /** Start the stub JWKS endpoint unhealthy, answering malformed documents until `setHealthy(true)`. */
