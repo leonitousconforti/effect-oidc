@@ -12,11 +12,11 @@ I wanted "Sign in with Tinyburg" and OAuth apps that could gain user consent for
 - [x] - JWT signing and verification against a JWKS with registered-claim validation (RFC 7519)
 - [x] - OIDC protocol surface: discovery and token endpoint schemas, PKCE utilities, token issuing helpers for the provider, and a code-flow client for relying apps
 - [x] - Drop-in bearer authentication middleware for `HttpApi` services
+- [x] - Dynamic client registration (RFC 7591), both ends: policy-driven metadata validation for the provider, and a registering client
 
 ## WIP/Todo :construction:
 
 - more tests
-- dynamic client registration
 
 ## Blocked :ambulance:
 

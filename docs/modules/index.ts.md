@@ -1,29 +1,39 @@
 ---
 title: index.ts
-nav_order: 1
+nav_order: 2
 parent: Modules
 ---
 
 ## index.ts overview
 
-JSON Web Algorithms (JWA) schemas based on RFC 7518.
+Dynamic client registration, RFC 7591: the endpoint where a client hands a
+provider its metadata and is handed back a `client_id` - and, when it asked
+to be confidential, a `client_secret`.
 
-This module defines the cryptographic algorithm identifiers used for JWS
-digital signatures and MACs (RFC 7518 Section 3), along with the WebCrypto
-parameter sets needed to import keys and to sign/verify with each
-algorithm. Those two parameter sets differ (e.g. ECDSA import needs
-`namedCurve` while signing needs `hash`), so they are exposed separately.
+Both ends are here. A provider decodes `ClientMetadataRequestSchema`
+and runs `validateClientMetadata` against its own
+`RegistrationPolicy`, which fills in the defaults the RFC leaves to
+the server and refuses anything the provider could not honour later;
+`clientInformationResponse` builds the answer. A client calls
+`register`, which finds the endpoint through discovery and comes back
+with its credentials.
 
-It also defines the JWE algorithm identifiers: the "alg" key management
-algorithms (RFC 7518 Section 4) used to encrypt or derive the Content
-Encryption Key, the "enc" content encryption algorithms (RFC 7518
-Section 5) that perform authenticated encryption on the plaintext, and the
-structural parameters (key/IV/tag sizes) each content encryption algorithm
-requires.
+Registering is not authorizing. Nothing here decides who may register: RFC
+7591 Section 3 offers an initial access token for that, and this module will
+present one (`register`) and expects the provider to have checked it
+before calling `validateClientMetadata`. An open registration endpoint
+lets anyone mint a client and put a consent screen in front of users under
+the provider's name, so a deployment that cannot gate it should not offer
+it at all - and should not advertise `registration_endpoint` in discovery.
+
+Nor does registering make a client trusted. A registered client is subject
+to the same authorization code + PKCE flow as any other, and a provider
+should not skip its consent screen for one just because it registered
+successfully.
 
 **See**
 
-- https://www.rfc-editor.org/rfc/rfc7518 - JSON Web Algorithms (JWA)
+- https://www.rfc-editor.org/rfc/rfc7591 - OAuth 2.0 Dynamic Client Registration Protocol
 
 Since v1.0.0
 
@@ -31,6 +41,8 @@ Since v1.0.0
 
 ## Exports Grouped by Category
 
+- [DynamicClientRegistration](#dynamicclientregistration)
+  - [DynamicClientRegistration (namespace export)](#dynamicclientregistration-namespace-export)
 - [Jwt](#jwt)
   - [Jwt (namespace export)](#jwt-namespace-export)
 - [Oidc](#oidc)
@@ -46,6 +58,26 @@ Since v1.0.0
   - [Jws (namespace export)](#jws-namespace-export)
 
 ---
+
+# DynamicClientRegistration
+
+## DynamicClientRegistration (namespace export)
+
+Re-exports all named exports from the "./DynamicClientRegistration.ts" module as `DynamicClientRegistration`.
+
+**See**
+
+- https://www.rfc-editor.org/rfc/rfc7591 - OAuth 2.0 Dynamic Client Registration Protocol
+
+**Signature**
+
+```ts
+export * as DynamicClientRegistration from "./DynamicClientRegistration.ts"
+```
+
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L35)
+
+Since v1.0.0
 
 # Jwt
 
@@ -63,7 +95,7 @@ Re-exports all named exports from the "./Jwt.ts" module as `Jwt`.
 export * as Jwt from "./Jwt.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L105)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L137)
 
 Since v1.0.0
 
@@ -79,7 +111,7 @@ Re-exports all named exports from the "./Oidc.ts" module as `Oidc`.
 export * as Oidc from "./Oidc.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L127)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L159)
 
 Since v1.0.0
 
@@ -95,7 +127,7 @@ Re-exports all named exports from the "./RelyingParty.ts" module as `RelyingPart
 export * as RelyingParty from "./RelyingParty.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L200)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L232)
 
 Since v1.0.0
 
@@ -111,7 +143,7 @@ Re-exports all named exports from the "./ResourceServer.ts" module as `ResourceS
 export * as ResourceServer from "./ResourceServer.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L253)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L285)
 
 Since v1.0.0
 
@@ -131,7 +163,7 @@ Re-exports all named exports from the "./Jwa.ts" module as `Jwa`.
 export * as Jwa from "./Jwa.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L24)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L56)
 
 Since v1.0.0
 
@@ -150,7 +182,7 @@ Re-exports all named exports from the "./Jwe.ts" module as `Jwe`.
 export * as Jwe from "./Jwe.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L50)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L82)
 
 Since v1.0.0
 
@@ -169,7 +201,7 @@ Re-exports all named exports from the "./Jwk.ts" module as `Jwk`.
 export * as Jwk from "./Jwk.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L68)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L100)
 
 Since v1.0.0
 
@@ -188,6 +220,6 @@ Re-exports all named exports from the "./Jws.ts" module as `Jws`.
 export * as Jws from "./Jws.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L90)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L122)
 
 Since v1.0.0
