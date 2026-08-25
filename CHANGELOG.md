@@ -1,5 +1,17 @@
 # effect-oidc
 
+## 0.0.14
+
+### Patch Changes
+
+- 8b9fa51: Add the optional `registration_endpoint` (RFC 7591) to `DiscoveryDocumentSchema`.
+
+    A provider that offers dynamic client registration advertises it there, and a client can now learn it from `Oidc.fetchDiscovery` instead of assuming a path. It is validated like every other endpoint in the document: same-origin with the issuer, and https away from loopback, because although a registration request carries no credentials its answer issues them.
+
+- 8b9fa51: Accept plain http on the loopback interface in `Oidc.fetchDiscovery`.
+
+    Every endpoint in a discovery document still has to be same-origin with the issuer, and https everywhere except `localhost`, `127.0.0.1` and `[::1]`, where nothing is on the wire. A relying party can now read discovery from a provider running on `http://localhost` in development instead of building the endpoint urls by hand; away from loopback the https requirement of RFC 8414 Section 2 is enforced exactly as before.
+
 ## 0.0.13
 
 ### Patch Changes
