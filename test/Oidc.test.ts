@@ -102,6 +102,36 @@ it.live("fetchDiscovery validates every endpoint credentials are sent to", () =>
     })
 );
 
+it.live("fetchDiscovery accepts plain http on the loopback interface only", () =>
+    Effect.gen(function* () {
+        const serve = (document: Record<string, unknown>) =>
+            HttpClient.make((request) => Effect.succeed(HttpClientResponse.fromWeb(request, Response.json(document))));
+        const fetchFrom = (local: string, document: Record<string, unknown>) =>
+            Oidc.fetchDiscovery(local).pipe(Effect.provideService(HttpClient.HttpClient, serve(document)));
+
+        // A provider on localhost in development has no certificate, and
+        // nothing is on the wire, so http is allowed there.
+        for (const local of ["http://localhost:3000", "http://127.0.0.1:3000", "http://[::1]:3000"]) {
+            const document = yield* fetchFrom(local, Oidc.makeDiscoveryDocument(local));
+            expect(document.issuer).toBe(local);
+        }
+
+        // Anywhere else, plain http is exactly the attack the https rule
+        // exists for, even when issuer and endpoints agree with each other.
+        const remote = "http://idp.example.com";
+        const error = yield* Effect.flip(fetchFrom(remote, Oidc.makeDiscoveryDocument(remote)));
+        expect(error._tag === "DiscoveryError" ? error.reason : error._tag).toBe("InvalidEndpoint");
+
+        // And loopback does not loosen the origin rule: a local issuer still
+        // may not send credentials off the machine.
+        const local = "http://localhost:3000";
+        const foreign = yield* Effect.flip(
+            fetchFrom(local, { ...Oidc.makeDiscoveryDocument(local), token_endpoint: "https://evil.example.com/token" })
+        );
+        expect(foreign._tag === "DiscoveryError" ? foreign.reason : foreign._tag).toBe("InvalidEndpoint");
+    })
+);
+
 it.live("exchanges client credentials with a Basic-authenticated token request", () =>
     Effect.gen(function* () {
         let authorization: string | undefined = undefined;

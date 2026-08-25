@@ -342,8 +342,25 @@ export const generatePkce = Effect.fnUntraced(function* () {
     };
 });
 
+const LOOPBACK_HOSTS: ReadonlyArray<string> = ["localhost", "127.0.0.1", "[::1]"];
+
+/**
+ * Whether credentials may travel to a url: https, or plain http to the
+ * loopback interface, where nothing is on the wire. The loopback exception is
+ * what lets a relying party run against a provider on `localhost` in
+ * development; away from loopback, RFC 8414 Section 2 makes https mandatory
+ * and so does this.
+ */
+const isSecureEndpoint = (url: URL): boolean =>
+    url.protocol === "https:" || (url.protocol === "http:" && LOOPBACK_HOSTS.includes(url.hostname));
+
 /**
  * Fetches and decodes the issuer's discovery document.
+ *
+ * Every endpoint in the document must be same-origin with the issuer and
+ * https, except that plain http is accepted on the loopback interface
+ * (`localhost`, `127.0.0.1`, `[::1]`) so a development provider can be
+ * reached without a certificate.
  *
  * @since 1.0.0
  * @category Client
@@ -356,9 +373,10 @@ export const fetchDiscovery = Effect.fnUntraced(function* (issuer: string) {
 
     // OIDC Discovery 1.0 §4.3 / RFC 8414 §3.3: the returned issuer MUST equal
     // the one used to build the request, and every endpoint the client will
-    // send credentials to MUST be https and same-origin with that issuer.
-    // Without this check a hostile discovery document could point the token
-    // endpoint at an attacker and harvest the code + PKCE verifier.
+    // send credentials to MUST be https (loopback excepted) and same-origin
+    // with that issuer. Without this check a hostile discovery document could
+    // point the token endpoint at an attacker and harvest the code + PKCE
+    // verifier.
     if (document.issuer !== issuer) {
         return yield* new DiscoveryError({ reason: "IssuerMismatch" });
     }
@@ -376,7 +394,7 @@ export const fetchDiscovery = Effect.fnUntraced(function* (issuer: string) {
             try: () => new URL(endpoint),
             catch: () => new DiscoveryError({ reason: "InvalidEndpoint" }),
         });
-        if (url.protocol !== "https:" || url.origin !== issuerOrigin) {
+        if (!isSecureEndpoint(url) || url.origin !== issuerOrigin) {
             return yield* new DiscoveryError({ reason: "InvalidEndpoint" });
         }
     }
