@@ -1,5 +1,27 @@
 # effect-oidc
 
+## 0.1.0
+
+### Minor Changes
+
+- bc4fb75: `ResourceServer.OIDCScopes` now accepts a scope carrying its description, and `ResourceServer.scopeCatalog` reads those back off an api.
+
+    An annotation entry may be a bare name as before, or a `ScopeDescription` - `{ name, description }` - where the name is what a token's `scope` claim carries and enforcement reads, and the description is the sentence a consent screen or a self-service dashboard shows for it. Both forms may sit in the same list, and existing bare-string annotations are untouched.
+
+    `scopeCatalog(api)` returns every described scope an api declares, deduped by name, in declaration order: groups as they were added, and within each group its own annotation before its endpoints'. That is the list a consent screen renders, read off the endpoints that actually enforce the scopes rather than kept as a second copy beside them - a copy that can name a scope no endpoint accepts, or miss one every endpoint does.
+
+    `requireScopes` accepts either form too, so the same constant guards a handler and describes the scope.
+
+    A description is one string in one language, and only described scopes are in the catalog: a bare name says nothing about what it lets someone do, and a catalog that guessed a sentence for it would be putting words in front of the person deciding what to grant. A service that shows its scopes in several languages should annotate a message key and resolve it per request.
+
+- 1a80733: Add a `DynamicClientRegistration` module: RFC 7591, both ends.
+
+    For a provider, `ClientMetadataRequestSchema` decodes a registration body and `validateClientMetadata` applies a `RegistrationPolicy` to it - filling in the defaults the RFC leaves to the server and refusing anything the provider could not honour later, so a client never registers with a redirect uri, grant, response type or scope that every subsequent request would then be refused for. `clientInformationResponse` builds the answer, including the `client_secret_expires_at` that RFC 7591 Section 3.2.1 makes required alongside an issued secret.
+
+    Two refusals are worth naming. A public client asking for `client_credentials` is turned away at registration rather than earning an `invalid_client` at the token endpoint, where the answer would not say which field was wrong. And the `authorization_code` grant and the `code` response type each require the other, per RFC 7591 Section 2.1.
+
+    For a client, `register` finds the endpoint through the issuer's discovery document - which is what makes `NotOffered` a real answer rather than a guessed path - presents an initial access token when the provider gates registration, and comes back with a `client_id` and, for a confidential client, a `Redacted` secret. `registerAt` skips discovery when the endpoint is already known. Neither retries: whether a provider that is still coming up is worth waiting for is the caller's judgement, and `Effect.retry` composes.
+
 ## 0.0.14
 
 ### Patch Changes
