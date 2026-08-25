@@ -6,7 +6,7 @@ import {
     HttpServerRequest,
     HttpServerResponse,
 } from "effect/unstable/http";
-import { HttpApiEndpoint, HttpApiError, HttpApiGroup } from "effect/unstable/httpapi";
+import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup } from "effect/unstable/httpapi";
 
 import { expect, it } from "@effect/vitest";
 import { Jwt, Oidc, ResourceServer } from "effect-oidc";
@@ -399,5 +399,104 @@ it.live("retries the jwks fetch after a failed first fetch instead of caching th
         const user = yield* harness.call(token, listNotes);
         expect(user.sub).toBe("user-123");
         expect(harness.jwksFetches()).toBe(2);
+    }).pipe(Effect.scoped)
+);
+
+it.live("a described scope is enforced by its name, exactly as a bare one is", () =>
+    Effect.gen(function* () {
+        const PullSave = {
+            name: "sync:pull",
+            description: "Download a tower's current save data",
+        } as const;
+        const pullSave = HttpApiEndpoint.get("pullSave", "/sync/pull").annotate(ResourceServer.OIDCScopes, [PullSave]);
+        const group = HttpApiGroup.make("sync").add(pullSave);
+        const harness = yield* makeHarness();
+
+        // The description is for people; only the name travels in the claim.
+        const granted = yield* harness.issueToken("sync:pull");
+        const user = yield* harness.call(granted, pullSave, { group });
+        expect(user.scopes).toStrictEqual(new Set(["sync:pull"]));
+
+        // A token naming the description, or the derived default, is refused.
+        for (const scope of ["Download a tower's current save data", "sync:pullSave sync"]) {
+            const token = yield* harness.issueToken(scope);
+            const forbidden = yield* Effect.flip(harness.call(token, pullSave, { group }));
+            expect(forbidden._tag).toBe("Forbidden");
+        }
+    }).pipe(Effect.scoped)
+);
+
+it.live("mixes described and bare scopes in one annotation", () =>
+    Effect.gen(function* () {
+        const purgeNotes = HttpApiEndpoint.delete("purgeNotes", "/notes").annotate(ResourceServer.OIDCScopes, [
+            { name: "notes:purge", description: "Delete every note" },
+            "admin",
+        ]);
+        const group = HttpApiGroup.make("notes").add(purgeNotes);
+        const harness = yield* makeHarness();
+
+        // Either one is enough: the annotation is a list of accepted scopes.
+        for (const scope of ["notes:purge", "admin"]) {
+            const token = yield* harness.issueToken(scope);
+            const user = yield* harness.call(token, purgeNotes, { group });
+            expect(user.scopes).toStrictEqual(new Set([scope]));
+        }
+    }).pipe(Effect.scoped)
+);
+
+it("reads the catalog back off an api in declaration order", () => {
+    const PullSave = { name: "sync:pull", description: "Download a tower's current save data" } as const;
+    const PushSave = { name: "sync:push", description: "Upload save data to a tower" } as const;
+    const Profile = { name: "profile", description: "See your display name and avatar" } as const;
+
+    const sync = HttpApiGroup.make("sync")
+        .add(
+            HttpApiEndpoint.get("pullSave", "/sync/pull").annotate(ResourceServer.OIDCScopes, [PullSave]),
+            // The same scope on a second endpoint is listed once, and a bare
+            // scope alongside it contributes nothing to describe.
+            HttpApiEndpoint.get("pullSnapshot", "/sync/pull_snapshot").annotate(ResourceServer.OIDCScopes, [
+                PullSave,
+                "admin",
+            ]),
+            HttpApiEndpoint.post("pushSave", "/sync/push").annotate(ResourceServer.OIDCScopes, [PushSave]),
+            // No annotation: the derived default has no description to give.
+            HttpApiEndpoint.get("status", "/sync/status")
+        )
+        .annotate(ResourceServer.OIDCScopes, [Profile]);
+
+    expect(ResourceServer.scopeCatalog(HttpApi.make("TowerApi").add(sync))).toStrictEqual([
+        // The group's own annotation comes before its endpoints'.
+        Profile,
+        PullSave,
+        PushSave,
+    ]);
+
+    // An api that describes nothing has an empty catalog rather than a list of
+    // names nobody can read.
+    expect(
+        ResourceServer.scopeCatalog(HttpApi.make("Bare").add(HttpApiGroup.make("notes").add(listNotes)))
+    ).toStrictEqual([]);
+});
+
+it.live("requireScopes accepts a described scope and reads its name", () =>
+    Effect.gen(function* () {
+        const PushSave = { name: "sync:push", description: "Upload save data to a tower" } as const;
+        const harness = yield* makeHarness();
+        // `notes` satisfies listNotes' derived default; the guard below is what
+        // reads `sync:push`.
+        const token = yield* harness.issueToken("notes sync:push");
+        const user = yield* harness.call(token, listNotes);
+        expect(user.scopes.has("sync:push")).toBe(true);
+
+        const guarded = yield* ResourceServer.requireScopes(PushSave).pipe(
+            Effect.provideService(ResourceServer.CurrentUser, user)
+        );
+        expect(guarded.sub).toBe("user-123");
+
+        const forbidden = yield* ResourceServer.requireScopes(PushSave, "admin").pipe(
+            Effect.provideService(ResourceServer.CurrentUser, user),
+            Effect.flip
+        );
+        expect(forbidden._tag).toBe("Forbidden");
     }).pipe(Effect.scoped)
 );

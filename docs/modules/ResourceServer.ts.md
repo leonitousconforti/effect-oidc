@@ -51,6 +51,12 @@ group identifier (`"MyGroup"`), which grants every endpoint in the group.
 Annotating an endpoint (or group) with `OIDCScopes` replaces that
 default with an explicit list of accepted scopes - empty to require none.
 
+A scope in that list may be a bare name or a `ScopeDescription`, which
+carries the sentence a consent screen shows for it. `scopeCatalog`
+reads those back off an api, so the screen asking for a scope and the
+endpoint enforcing it are the same declaration rather than two copies that
+drift apart.
+
 Since v1.0.0
 
 ---
@@ -64,6 +70,10 @@ Since v1.0.0
   - [requireScopes](#requirescopes)
 - [Scopes](#scopes)
   - [OIDCScopes (class)](#oidcscopes-class)
+  - [Scope (type alias)](#scope-type-alias)
+  - [ScopeDescription (interface)](#scopedescription-interface)
+  - [scopeCatalog](#scopecatalog)
+  - [scopeName](#scopename)
 - [Services](#services)
   - [CurrentUser (class)](#currentuser-class)
 
@@ -98,7 +108,7 @@ declare const layer: <ERevoked = never, RRevoked = never>(options: {
 }) => Layer.Layer<Authorization, never, HttpClient.HttpClient | RRevoked>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L162)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L284)
 
 Since v1.0.0
 
@@ -112,7 +122,7 @@ Since v1.0.0
 declare class Authorization
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L86)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L92)
 
 Since v1.0.0
 
@@ -125,7 +135,7 @@ the given scopes.
 
 ```ts
 declare const requireScopes: (
-  ...scopes: ReadonlyArray<string>
+  ...scopes: ReadonlyArray<Scope>
 ) => Effect.Effect<
   {
     readonly sub: string
@@ -138,7 +148,7 @@ declare const requireScopes: (
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L105)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L111)
 
 Since v1.0.0
 
@@ -168,6 +178,27 @@ const Notes = HttpApiGroup.make("notes")
   .middleware(ResourceServer.Authorization)
 ```
 
+A scope may carry the sentence a consent screen shows for it, which
+`scopeCatalog` then reads back off the api. Name it once and share the
+constant, so that the endpoint enforcing a scope and the screen asking for
+it cannot disagree about what it means:
+
+```ts
+import { Schema } from "effect"
+import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+import { ResourceServer } from "effect-oidc"
+
+const PullSave = { name: "sync:pull", description: "Download a tower's current save data" } as const
+
+const Sync = HttpApiGroup.make("sync")
+  .add(
+    HttpApiEndpoint.get("pullSave", "/sync/pull", { success: Schema.String }).annotate(ResourceServer.OIDCScopes, [
+      PullSave
+    ])
+  )
+  .middleware(ResourceServer.Authorization)
+```
+
 Without the annotation an endpoint accepts its derived name
 (`"<group>:<endpoint>"`) or the bare group identifier (`"<group>"`), so a
 group scope grants every endpoint in the group while endpoint scopes
@@ -179,7 +210,104 @@ grant just the one.
 declare class OIDCScopes
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L141)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L202)
+
+Since v1.0.0
+
+## Scope (type alias)
+
+A scope as an endpoint names it: bare, or carrying its description.
+
+Both grant the same thing - `scopeName` is what enforcement reads, and
+it is the same either way. A description only adds the words for it, so
+annotations written before descriptions existed keep working untouched.
+
+**Signature**
+
+```ts
+type Scope = string | ScopeDescription
+```
+
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L150)
+
+Since v1.0.0
+
+## ScopeDescription (interface)
+
+A scope, and the sentence shown to whoever is deciding whether to grant it.
+
+The description belongs here, on the endpoint the scope guards, rather than
+in a catalog kept beside it: the two would drift, and the copy that drifts
+is the one a person reads before consenting. See `scopeCatalog`.
+
+One string, in one language. A service that shows its scopes in several
+should put a message key here and resolve it per request, the way it
+already resolves every other string it shows.
+
+**Signature**
+
+```ts
+export interface ScopeDescription {
+  /** What appears in a token's `scope` claim. */
+  readonly name: string
+  /** What a consent screen or a dashboard shows for it. */
+  readonly description: string
+}
+```
+
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L133)
+
+Since v1.0.0
+
+## scopeCatalog
+
+Every described scope an api declares, in declaration order: groups as
+they were added, and within each group its own annotation before its
+endpoints'.
+
+This is the catalog a consent screen lists and a dashboard offers, read off
+the endpoints that enforce the scopes rather than kept beside them. A copy
+kept beside them is a copy that goes stale: it can name a scope no endpoint
+accepts, or miss one every endpoint does.
+
+Only described scopes are in it. A bare string names a scope without saying
+what it lets someone do, and an interface that guessed a sentence for it
+would be putting words in front of a person deciding what to grant. The
+derived `"<group>:<endpoint>"` defaults are absent for the same reason.
+
+A scope named on several endpoints is listed once, described the first way
+it was described - so a second, differing description for the same name is
+silently the loser. Name each scope once and share the constant.
+
+Reads the same annotations enforcement reads: each group's own and each
+endpoint's own. An annotation on the api itself is not one of them, because
+it is not one the middleware would accept a token against either.
+
+**Signature**
+
+```ts
+declare const scopeCatalog: <Id extends string, Groups extends HttpApiGroup.Constraint>(
+  api: HttpApi.HttpApi<Id, Groups>
+) => ReadonlyArray<ScopeDescription>
+```
+
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L240)
+
+Since v1.0.0
+
+## scopeName
+
+The name a scope is granted under, whichever form it was written in. This
+is what appears in a token's `scope` claim either way; a description is
+for people, and never travels on the wire.
+
+**Signature**
+
+```ts
+declare const scopeName: (scope: Scope) => string
+```
+
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L212)
 
 Since v1.0.0
 
@@ -197,6 +325,6 @@ token claims.
 declare class CurrentUser
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L72)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/ResourceServer.ts#L78)
 
 Since v1.0.0
