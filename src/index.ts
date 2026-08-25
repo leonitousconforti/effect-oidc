@@ -3,6 +3,38 @@
  */
 
 /**
+ * Dynamic client registration, RFC 7591: the endpoint where a client hands a
+ * provider its metadata and is handed back a `client_id` - and, when it asked
+ * to be confidential, a `client_secret`.
+ *
+ * Both ends are here. A provider decodes {@link ClientMetadataRequestSchema}
+ * and runs {@link validateClientMetadata} against its own
+ * {@link RegistrationPolicy}, which fills in the defaults the RFC leaves to
+ * the server and refuses anything the provider could not honour later;
+ * {@link clientInformationResponse} builds the answer. A client calls
+ * {@link register}, which finds the endpoint through discovery and comes back
+ * with its credentials.
+ *
+ * Registering is not authorizing. Nothing here decides who may register: RFC
+ * 7591 Section 3 offers an initial access token for that, and this module will
+ * present one ({@link register}) and expects the provider to have checked it
+ * before calling {@link validateClientMetadata}. An open registration endpoint
+ * lets anyone mint a client and put a consent screen in front of users under
+ * the provider's name, so a deployment that cannot gate it should not offer
+ * it at all - and should not advertise `registration_endpoint` in discovery.
+ *
+ * Nor does registering make a client trusted. A registered client is subject
+ * to the same authorization code + PKCE flow as any other, and a provider
+ * should not skip its consent screen for one just because it registered
+ * successfully.
+ *
+ * @since 1.0.0
+ * @category DynamicClientRegistration
+ * @see https://www.rfc-editor.org/rfc/rfc7591 - OAuth 2.0 Dynamic Client Registration Protocol
+ */
+export * as DynamicClientRegistration from "./DynamicClientRegistration.ts"
+
+/**
  * JSON Web Algorithms (JWA) schemas based on RFC 7518.
  *
  * This module defines the cryptographic algorithm identifiers used for JWS
