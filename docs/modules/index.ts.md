@@ -143,7 +143,7 @@ Re-exports all named exports from the "./ResourceServer.ts" module as `ResourceS
 export * as ResourceServer from "./ResourceServer.ts"
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L285)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/index.ts#L291)
 
 Since v1.0.0
 

@@ -46,6 +46,12 @@
  * Annotating an endpoint (or group) with {@link OIDCScopes} replaces that
  * default with an explicit list of accepted scopes - empty to require none.
  *
+ * A scope in that list may be a bare name or a {@link ScopeDescription}, which
+ * carries the sentence a consent screen shows for it. {@link scopeCatalog}
+ * reads those back off an api, so the screen asking for a scope and the
+ * endpoint enforcing it are the same declaration rather than two copies that
+ * drift apart.
+ *
  * @since 1.0.0
  * @category ResourceServer
  */
@@ -54,7 +60,7 @@ import type { HttpClient, HttpClientError } from "effect/unstable/http";
 import type { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi";
 
 import { Context, type Duration, Effect, Layer, Option, Redacted, type Schema } from "effect";
-import { HttpApiError, HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi";
+import { HttpApi, HttpApiError, HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi";
 
 import type * as Jwa from "./Jwa.ts";
 
@@ -102,11 +108,46 @@ export class Authorization extends HttpApiMiddleware.Service<
  * @since 1.0.0
  * @category Middleware
  */
-export const requireScopes = (...scopes: ReadonlyArray<string>) =>
+export const requireScopes = (...scopes: ReadonlyArray<Scope>) =>
     Effect.flatMap(CurrentUser, (user) => {
-        if (!scopes.every((scope) => user.scopes.has(scope))) return Effect.fail(new HttpApiError.Forbidden());
+        if (!scopes.every((scope) => user.scopes.has(scopeName(scope)))) {
+            return Effect.fail(new HttpApiError.Forbidden());
+        }
         return Effect.succeed(user);
     });
+
+/**
+ * A scope, and the sentence shown to whoever is deciding whether to grant it.
+ *
+ * The description belongs here, on the endpoint the scope guards, rather than
+ * in a catalog kept beside it: the two would drift, and the copy that drifts
+ * is the one a person reads before consenting. See {@link scopeCatalog}.
+ *
+ * One string, in one language. A service that shows its scopes in several
+ * should put a message key here and resolve it per request, the way it
+ * already resolves every other string it shows.
+ *
+ * @since 1.0.0
+ * @category Scopes
+ */
+export interface ScopeDescription {
+    /** What appears in a token's `scope` claim. */
+    readonly name: string;
+    /** What a consent screen or a dashboard shows for it. */
+    readonly description: string;
+}
+
+/**
+ * A scope as an endpoint names it: bare, or carrying its description.
+ *
+ * Both grant the same thing - {@link scopeName} is what enforcement reads, and
+ * it is the same either way. A description only adds the words for it, so
+ * annotations written before descriptions existed keep working untouched.
+ *
+ * @since 1.0.0
+ * @category Scopes
+ */
+export type Scope = string | ScopeDescription;
 
 /**
  * Annotation naming the scopes accepted for an endpoint - a token must grant
@@ -130,6 +171,26 @@ export const requireScopes = (...scopes: ReadonlyArray<string>) =>
  *     .middleware(ResourceServer.Authorization)
  * ```
  *
+ * A scope may carry the sentence a consent screen shows for it, which
+ * {@link scopeCatalog} then reads back off the api. Name it once and share the
+ * constant, so that the endpoint enforcing a scope and the screen asking for
+ * it cannot disagree about what it means:
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ * import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+ * import { ResourceServer } from "effect-oidc"
+ *
+ * const PullSave = { name: "sync:pull", description: "Download a tower's current save data" } as const
+ *
+ * const Sync = HttpApiGroup.make("sync")
+ *     .add(
+ *         HttpApiEndpoint.get("pullSave", "/sync/pull", { success: Schema.String })
+ *             .annotate(ResourceServer.OIDCScopes, [PullSave])
+ *     )
+ *     .middleware(ResourceServer.Authorization)
+ * ```
+ *
  * Without the annotation an endpoint accepts its derived name
  * (`"<group>:<endpoint>"`) or the bare group identifier (`"<group>"`), so a
  * group scope grants every endpoint in the group while endpoint scopes
@@ -138,12 +199,73 @@ export const requireScopes = (...scopes: ReadonlyArray<string>) =>
  * @since 1.0.0
  * @category Scopes
  */
-export class OIDCScopes extends Context.Service<OIDCScopes, ReadonlyArray<string>>()("effect-oidc/Scopes") {}
+export class OIDCScopes extends Context.Service<OIDCScopes, ReadonlyArray<Scope>>()("effect-oidc/Scopes") {}
+
+/**
+ * The name a scope is granted under, whichever form it was written in. This
+ * is what appears in a token's `scope` claim either way; a description is
+ * for people, and never travels on the wire.
+ *
+ * @since 1.0.0
+ * @category Scopes
+ */
+export const scopeName = (scope: Scope): string => (typeof scope === "string" ? scope : scope.name);
+
+/**
+ * Every described scope an api declares, in declaration order: groups as
+ * they were added, and within each group its own annotation before its
+ * endpoints'.
+ *
+ * This is the catalog a consent screen lists and a dashboard offers, read off
+ * the endpoints that enforce the scopes rather than kept beside them. A copy
+ * kept beside them is a copy that goes stale: it can name a scope no endpoint
+ * accepts, or miss one every endpoint does.
+ *
+ * Only described scopes are in it. A bare string names a scope without saying
+ * what it lets someone do, and an interface that guessed a sentence for it
+ * would be putting words in front of a person deciding what to grant. The
+ * derived `"<group>:<endpoint>"` defaults are absent for the same reason.
+ *
+ * A scope named on several endpoints is listed once, described the first way
+ * it was described - so a second, differing description for the same name is
+ * silently the loser. Name each scope once and share the constant.
+ *
+ * Reads the same annotations enforcement reads: each group's own and each
+ * endpoint's own. An annotation on the api itself is not one of them, because
+ * it is not one the middleware would accept a token against either.
+ *
+ * @since 1.0.0
+ * @category Scopes
+ */
+export const scopeCatalog = <Id extends string, Groups extends HttpApiGroup.Constraint>(
+    api: HttpApi.HttpApi<Id, Groups>
+): ReadonlyArray<ScopeDescription> => {
+    const described = new Map<string, string>();
+
+    const collect = (annotations: Context.Context<never>): void => {
+        for (const scope of Option.getOrElse(Context.getOption(annotations, OIDCScopes), () => [])) {
+            if (typeof scope === "string" || described.has(scope.name)) continue;
+            described.set(scope.name, scope.description);
+        }
+    };
+
+    // `reflect` walks groups in the order they were added and, within each,
+    // the group before its endpoints - and it takes a concrete api, which
+    // `HttpApi.Top` would not: the phantom request members make a concrete
+    // api no subtype of it.
+    HttpApi.reflect(api, {
+        onGroup: ({ group }) => collect(group.annotations),
+        onEndpoint: ({ endpoint }) => collect(endpoint.annotations),
+    });
+
+    return Array.from(described, ([name, description]) => ({ name, description }));
+};
 
 /** The scopes a token must grant one of to call an endpoint. */
 const acceptedScopes = (group: HttpApiGroup.Top, endpoint: HttpApiEndpoint.Top): ReadonlyArray<string> =>
     Context.getOption(endpoint.annotations, OIDCScopes).pipe(
         Option.orElse(() => Context.getOption(group.annotations, OIDCScopes)),
+        Option.map((scopes) => scopes.map(scopeName)),
         Option.getOrElse(() => [`${group.identifier}:${endpoint.identifier}`, group.identifier])
     );
 

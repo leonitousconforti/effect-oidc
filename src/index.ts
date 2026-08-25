@@ -279,6 +279,12 @@ export * as RelyingParty from "./RelyingParty.ts"
  * Annotating an endpoint (or group) with {@link OIDCScopes} replaces that
  * default with an explicit list of accepted scopes - empty to require none.
  *
+ * A scope in that list may be a bare name or a {@link ScopeDescription}, which
+ * carries the sentence a consent screen shows for it. {@link scopeCatalog}
+ * reads those back off an api, so the screen asking for a scope and the
+ * endpoint enforcing it are the same declaration rather than two copies that
+ * drift apart.
+ *
  * @since 1.0.0
  * @category ResourceServer
  */
