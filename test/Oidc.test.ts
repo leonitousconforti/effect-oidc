@@ -69,6 +69,19 @@ it("resolves paths relative to the issuer, keeping any path the issuer carries",
     expect(document.token_endpoint).toBe("https://idp.example.com/realms/tenant/oauth/token");
 });
 
+it("decodes an optional registration endpoint", () => {
+    const withRegistration = {
+        ...Oidc.makeDiscoveryDocument(issuer),
+        registration_endpoint: `${issuer}/oauth/register`,
+    };
+    expect(Schema.decodeUnknownSync(Oidc.DiscoveryDocumentSchema)(withRegistration).registration_endpoint).toBe(
+        "https://id.example.com/oauth/register"
+    );
+    expect(
+        Schema.decodeUnknownSync(Oidc.DiscoveryDocumentSchema)(Oidc.makeDiscoveryDocument(issuer)).registration_endpoint
+    ).toBeUndefined();
+});
+
 it.live("fetchDiscovery validates every endpoint credentials are sent to", () =>
     Effect.gen(function* () {
         const tenant = "https://idp.example.com/realms/tenant";
@@ -93,6 +106,9 @@ it.live("fetchDiscovery validates every endpoint credentials are sent to", () =>
             { ...good, revocation_endpoint: "https://evil.example.com/revoke" },
             { ...good, userinfo_endpoint: "http://idp.example.com/realms/tenant/oauth/userinfo" },
             { ...good, token_endpoint: "https://evil.example.com/token" },
+            // The registration endpoint receives no credentials, but its
+            // answer issues them, so it is held to the same rule.
+            { ...good, registration_endpoint: "https://evil.example.com/register" },
         ]) {
             const error = yield* Effect.flip(
                 Oidc.fetchDiscovery(tenant).pipe(Effect.provideService(HttpClient.HttpClient, serve(hostile)))

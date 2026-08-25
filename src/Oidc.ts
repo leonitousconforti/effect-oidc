@@ -44,6 +44,8 @@ export const DiscoveryDocumentSchema = Schema.Struct({
     code_challenge_methods_supported: Schema.Array(Schema.String),
     token_endpoint_auth_methods_supported: Schema.Array(Schema.String).pipe(Schema.optional),
     revocation_endpoint: Schema.String.pipe(Schema.optional),
+    /** RFC 7591 Section 3: where a client may register itself, when the provider offers that. */
+    registration_endpoint: Schema.String.pipe(Schema.optional),
 });
 
 /**
@@ -388,6 +390,7 @@ export const fetchDiscovery = Effect.fnUntraced(function* (issuer: string) {
         document.jwks_uri,
         document.userinfo_endpoint,
         document.revocation_endpoint,
+        document.registration_endpoint,
     ].filter((endpoint) => endpoint !== undefined);
     for (const endpoint of endpoints) {
         const url = yield* Effect.try({
