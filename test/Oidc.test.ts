@@ -69,6 +69,19 @@ it("resolves paths relative to the issuer, keeping any path the issuer carries",
     expect(document.token_endpoint).toBe("https://idp.example.com/realms/tenant/oauth/token");
 });
 
+it("decodes an optional registration endpoint", () => {
+    const withRegistration = {
+        ...Oidc.makeDiscoveryDocument(issuer),
+        registration_endpoint: `${issuer}/oauth/register`,
+    };
+    expect(Schema.decodeUnknownSync(Oidc.DiscoveryDocumentSchema)(withRegistration).registration_endpoint).toBe(
+        "https://id.example.com/oauth/register"
+    );
+    expect(
+        Schema.decodeUnknownSync(Oidc.DiscoveryDocumentSchema)(Oidc.makeDiscoveryDocument(issuer)).registration_endpoint
+    ).toBeUndefined();
+});
+
 it.live("fetchDiscovery validates every endpoint credentials are sent to", () =>
     Effect.gen(function* () {
         const tenant = "https://idp.example.com/realms/tenant";
@@ -93,12 +106,45 @@ it.live("fetchDiscovery validates every endpoint credentials are sent to", () =>
             { ...good, revocation_endpoint: "https://evil.example.com/revoke" },
             { ...good, userinfo_endpoint: "http://idp.example.com/realms/tenant/oauth/userinfo" },
             { ...good, token_endpoint: "https://evil.example.com/token" },
+            // The registration endpoint receives no credentials, but its
+            // answer issues them, so it is held to the same rule.
+            { ...good, registration_endpoint: "https://evil.example.com/register" },
         ]) {
             const error = yield* Effect.flip(
                 Oidc.fetchDiscovery(tenant).pipe(Effect.provideService(HttpClient.HttpClient, serve(hostile)))
             );
             expect(error._tag === "DiscoveryError" ? error.reason : error._tag).toBe("InvalidEndpoint");
         }
+    })
+);
+
+it.live("fetchDiscovery accepts plain http on the loopback interface only", () =>
+    Effect.gen(function* () {
+        const serve = (document: Record<string, unknown>) =>
+            HttpClient.make((request) => Effect.succeed(HttpClientResponse.fromWeb(request, Response.json(document))));
+        const fetchFrom = (local: string, document: Record<string, unknown>) =>
+            Oidc.fetchDiscovery(local).pipe(Effect.provideService(HttpClient.HttpClient, serve(document)));
+
+        // A provider on localhost in development has no certificate, and
+        // nothing is on the wire, so http is allowed there.
+        for (const local of ["http://localhost:3000", "http://127.0.0.1:3000", "http://[::1]:3000"]) {
+            const document = yield* fetchFrom(local, Oidc.makeDiscoveryDocument(local));
+            expect(document.issuer).toBe(local);
+        }
+
+        // Anywhere else, plain http is exactly the attack the https rule
+        // exists for, even when issuer and endpoints agree with each other.
+        const remote = "http://idp.example.com";
+        const error = yield* Effect.flip(fetchFrom(remote, Oidc.makeDiscoveryDocument(remote)));
+        expect(error._tag === "DiscoveryError" ? error.reason : error._tag).toBe("InvalidEndpoint");
+
+        // And loopback does not loosen the origin rule: a local issuer still
+        // may not send credentials off the machine.
+        const local = "http://localhost:3000";
+        const foreign = yield* Effect.flip(
+            fetchFrom(local, { ...Oidc.makeDiscoveryDocument(local), token_endpoint: "https://evil.example.com/token" })
+        );
+        expect(foreign._tag === "DiscoveryError" ? foreign.reason : foreign._tag).toBe("InvalidEndpoint");
     })
 );
 
