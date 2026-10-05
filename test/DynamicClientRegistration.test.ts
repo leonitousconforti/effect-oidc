@@ -1,5 +1,5 @@
 import { Effect, Option, Redacted, Result } from "effect";
-import { HttpClient, HttpClientResponse } from "effect/unstable/http";
+import { HttpClient, HttpClientResponse } from "effect/http";
 
 import { expect, it } from "@effect/vitest";
 import { DynamicClientRegistration, Oidc } from "effect-oidc";

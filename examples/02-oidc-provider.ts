@@ -29,8 +29,9 @@
  *     pnpm tsx examples/02-oidc-provider.ts
  */
 
-import { Context, DateTime, Effect, Encoding, Function, Layer, Option, type Schema } from "effect";
-import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/unstable/http";
+import { Context, DateTime, Effect, Function, Layer, Option, type Schema } from "effect";
+import { Base64Url } from "effect/encoding";
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 
 import { createServer } from "node:http";
 
@@ -124,7 +125,7 @@ const ProviderStateLive = Layer.effect(
     })
 );
 
-const randomToken = (): string => Encoding.encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)));
+const randomToken = (): string => Base64Url.encode(crypto.getRandomValues(new Uint8Array(32)));
 
 /**
  * RFC 6749 Section 5.2 error response. `invalid_client` answers 401, as
@@ -304,7 +305,7 @@ const handleAuthorizationCodeGrant = Effect.fnUntraced(function* (request: {
     const digest = yield* Effect.promise(() =>
         crypto.subtle.digest("SHA-256", new TextEncoder().encode(request.code_verifier))
     );
-    if (Encoding.encodeBase64Url(new Uint8Array(digest)) !== grant.codeChallenge) {
+    if (Base64Url.encode(new Uint8Array(digest)) !== grant.codeChallenge) {
         return yield* oauthError("invalid_grant");
     }
 

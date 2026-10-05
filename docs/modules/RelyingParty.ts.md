@@ -19,7 +19,7 @@ claims for the app to turn into its own session:
 
 ```ts
 import { Effect, Layer, Option } from "effect"
-import { HttpRouter, HttpServerResponse } from "effect/unstable/http"
+import { HttpRouter, HttpServerResponse } from "effect/http"
 import { RelyingParty } from "effect-oidc"
 
 const GoogleSignIn = Effect.gen(function* () {
@@ -130,7 +130,7 @@ declare const make: (options: {
 }) => Effect.Effect<RelyingParty, never, HttpClient.HttpClient>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L184)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L185)
 
 Since v1.0.0
 
@@ -150,7 +150,7 @@ protocol failure.
 declare class CallbackError
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L94)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L95)
 
 Since v1.0.0
 
@@ -219,6 +219,6 @@ export interface RelyingParty {
 }
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L112)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L113)
 
 Since v1.0.0

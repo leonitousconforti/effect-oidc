@@ -1017,7 +1017,7 @@ ambiguity in the JOSE header structure and violate the JWS specification.
 **Signature**
 
 ```ts
-type ValidateCriticalHeaderKey<K> = K extends
+type ValidateCriticalHeaderKey<K extends string> = K extends
   keyof typeof JoseProtectedHeader.fields | keyof typeof JoseUnprotectedHeader.fields
   ? `${K} is a registered JOSE header parameter and cannot be used as a critical header key`
   : {}
@@ -1034,7 +1034,11 @@ Type-level validation applied to a whole record of critical headers.
 **Signature**
 
 ```ts
-type ValidateCriticalHeaderKeys<CriticalHeaders> = {
+type ValidateCriticalHeaderKeys<
+  CriticalHeaders extends {
+    readonly [K in string]: Schema.Codec<unknown, Schema.Json, unknown, unknown>
+  }
+> = {
   [K in Extract<keyof CriticalHeaders, string>]: ValidateCriticalHeaderKey<K>
 }
 ```

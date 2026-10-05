@@ -6,7 +6,7 @@
  *
  * ```ts
  * import { Schema } from "effect"
- * import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+ * import { HttpApiEndpoint, HttpApiGroup } from "effect/http-api"
  * import { ResourceServer } from "effect-oidc"
  *
  * const MyEndpoint = HttpApiEndpoint.get("MyEndpoint", "/me", { success: Schema.String })
@@ -56,11 +56,11 @@
  * @category ResourceServer
  */
 
-import type { HttpClient, HttpClientError } from "effect/unstable/http";
-import type { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi";
+import type { HttpClient, HttpClientError } from "effect/http";
+import type { HttpApiEndpoint, HttpApiGroup } from "effect/http-api";
 
 import { Context, type Duration, Effect, Layer, Option, Redacted, type Schema } from "effect";
-import { HttpApi, HttpApiError, HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi";
+import { HttpApi, HttpApiError, HttpApiMiddleware, HttpApiSecurity } from "effect/http-api";
 
 import type * as Jwa from "./Jwa.ts";
 
@@ -157,7 +157,7 @@ export type Scope = string | ScopeDescription;
  *
  * ```ts
  * import { Schema } from "effect"
- * import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+ * import { HttpApiEndpoint, HttpApiGroup } from "effect/http-api"
  * import { ResourceServer } from "effect-oidc"
  *
  * const Notes = HttpApiGroup.make("notes")
@@ -178,7 +178,7 @@ export type Scope = string | ScopeDescription;
  *
  * ```ts
  * import { Schema } from "effect"
- * import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+ * import { HttpApiEndpoint, HttpApiGroup } from "effect/http-api"
  * import { ResourceServer } from "effect-oidc"
  *
  * const PullSave = { name: "sync:pull", description: "Download a tower's current save data" } as const

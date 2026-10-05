@@ -12,7 +12,7 @@
  *
  * ```ts
  * import { Effect, Layer, Option } from "effect"
- * import { HttpRouter, HttpServerResponse } from "effect/unstable/http"
+ * import { HttpRouter, HttpServerResponse } from "effect/http"
  * import { RelyingParty } from "effect-oidc"
  *
  * const GoogleSignIn = Effect.gen(function* () {
@@ -71,10 +71,11 @@
  */
 
 import type { Duration } from "effect";
-import type { Cookies, HttpClientError } from "effect/unstable/http";
+import type { Cookies, HttpClientError } from "effect/http";
 
-import { Effect, Encoding, Option, Redacted, Schema } from "effect";
-import { HttpClient, HttpServerRequest, HttpServerResponse, Url } from "effect/unstable/http";
+import { Effect, Option, Redacted, Schema } from "effect";
+import { Base64Url } from "effect/encoding";
+import { HttpClient, HttpServerRequest, HttpServerResponse, Url } from "effect/http";
 
 import type * as Jwa from "./Jwa.ts";
 import type * as Jwt from "./Jwt.ts";
@@ -245,11 +246,11 @@ export const make = Effect.fnUntraced(function* (options: {
 
     const beginAuthorization: RelyingParty["beginAuthorization"] = Effect.fnUntraced(function* (beginOptions) {
         const pkce = yield* Oidc.generatePkce();
-        const state = Encoding.encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)));
+        const state = Base64Url.encode(crypto.getRandomValues(new Uint8Array(32)));
         // OIDC Core Section 3.1.2.1: the nonce binds the id token to this
         // browser session, so a captured id token cannot be replayed into
         // another sign-in.
-        const nonce = Encoding.encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)));
+        const nonce = Base64Url.encode(crypto.getRandomValues(new Uint8Array(32)));
 
         const authorizationRequest = Oidc.authorizationRequest({
             authorizationEndpoint: options.authorizationEndpoint,

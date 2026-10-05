@@ -1,12 +1,6 @@
 import { Context, Effect, Layer, Redacted, Schema } from "effect";
-import {
-    HttpClient,
-    HttpClientResponse,
-    HttpRouter,
-    HttpServerRequest,
-    HttpServerResponse,
-} from "effect/unstable/http";
-import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup } from "effect/unstable/httpapi";
+import { HttpClient, HttpClientResponse, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
+import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup } from "effect/http-api";
 
 import { expect, it } from "@effect/vitest";
 import { Jwt, Oidc, ResourceServer } from "effect-oidc";

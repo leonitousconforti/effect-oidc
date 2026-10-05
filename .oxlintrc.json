@@ -21,6 +21,11 @@
         }
     ],
     "rules": {
+        // This library is an OIDC provider/relying-party toolkit built on `HttpApi` and
+        // `effect/http`, which effect still marks unstable. There is no stable alternative
+        // to migrate to, so flagging every use would mean disabling the rule inline on
+        // almost every line of ResourceServer and RelyingParty.
+        "effecttsgo/unstable-api-usage": "off",
         // Import rules
         "typescript/consistent-type-imports": [
             "error",

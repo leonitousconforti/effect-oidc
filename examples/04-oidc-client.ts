@@ -17,7 +17,7 @@
  */
 
 import { Console, Data, Effect, Schema } from "effect";
-import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http";
+import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http";
 
 import { NodeHttpClient, NodeRuntime } from "@effect/platform-node";
 import { Oidc } from "effect-oidc";

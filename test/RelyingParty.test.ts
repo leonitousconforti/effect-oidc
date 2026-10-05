@@ -1,5 +1,6 @@
-import { Effect, Encoding, Option } from "effect";
-import { Cookies, HttpClient, HttpClientResponse, HttpServerRequest, HttpServerResponse } from "effect/unstable/http";
+import { Effect, Option } from "effect";
+import { Base64Url } from "effect/encoding";
+import { Cookies, HttpClient, HttpClientResponse, HttpServerRequest, HttpServerResponse } from "effect/http";
 
 import { expect, it } from "@effect/vitest";
 import { Jwt, Oidc, RelyingParty } from "effect-oidc";
@@ -117,7 +118,7 @@ it.live("drives the authorization code + PKCE flow end to end", () =>
         const digest = yield* Effect.promise(() =>
             crypto.subtle.digest("SHA-256", new TextEncoder().encode(transaction["oidc_code_verifier"]))
         );
-        expect(location.searchParams.get("code_challenge")).toBe(Encoding.encodeBase64Url(new Uint8Array(digest)));
+        expect(location.searchParams.get("code_challenge")).toBe(Base64Url.encode(new Uint8Array(digest)));
 
         const result = yield* serveCallback(relyingParty, `${redirectUri}?code=code-123&state=${state}`, transaction);
         expect(result.claims.sub).toBe("user-123");

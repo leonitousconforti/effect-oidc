@@ -1,5 +1,6 @@
-import { Effect, Encoding, Option, Schema } from "effect";
-import { HttpClient, HttpClientResponse } from "effect/unstable/http";
+import { Effect, Option, Schema } from "effect";
+import { Base64, Base64Url } from "effect/encoding";
+import { HttpClient, HttpClientResponse } from "effect/http";
 
 import { expect, it } from "@effect/vitest";
 import { Jwt, Oidc } from "effect-oidc";
@@ -25,7 +26,7 @@ it("builds a discovery document rooted at the issuer", () => {
 it("resolves client authentication from the Basic header or the body", () => {
     // client_secret_basic: form-urlencoded parts, joined and base64 encoded.
     // A body client_id alongside it is fine (public clients always send one).
-    const header = `Basic ${Encoding.encodeBase64(`${encodeURIComponent("demo service")}:${encodeURIComponent("s3:cret")}`)}`;
+    const header = `Basic ${Base64.encode(`${encodeURIComponent("demo service")}:${encodeURIComponent("s3:cret")}`)}`;
     expect(
         Oidc.clientAuthentication({
             authorization: header,
@@ -51,7 +52,7 @@ it("resolves client authentication from the Basic header or the body", () => {
     expect(Oidc.clientAuthentication({ request: {} })).toStrictEqual(Option.none());
     expect(Oidc.clientAuthentication({ authorization: "Basic !!!", request: {} })).toStrictEqual(Option.none());
     expect(
-        Oidc.clientAuthentication({ authorization: `Basic ${Encoding.encodeBase64("no-separator")}`, request: {} })
+        Oidc.clientAuthentication({ authorization: `Basic ${Base64.encode("no-separator")}`, request: {} })
     ).toStrictEqual(Option.none());
 });
 
@@ -169,7 +170,7 @@ it.live("exchanges client credentials with a Basic-authenticated token request",
         }).pipe(Effect.provideService(HttpClient.HttpClient, stub));
 
         expect(tokens.access_token).toBe("token-123");
-        expect(authorization).toBe(`Basic ${Encoding.encodeBase64("demo-service:demo-service-secret")}`);
+        expect(authorization).toBe(`Basic ${Base64.encode("demo-service:demo-service-secret")}`);
     })
 );
 
@@ -180,7 +181,7 @@ it.live("generates a PKCE pair whose challenge is the S256 digest of the verifie
             crypto.subtle.digest("SHA-256", new TextEncoder().encode(pkce.verifier))
         );
         expect(pkce.method).toBe("S256");
-        expect(pkce.challenge).toBe(Encoding.encodeBase64Url(new Uint8Array(digest)));
+        expect(pkce.challenge).toBe(Base64Url.encode(new Uint8Array(digest)));
     })
 );
 
@@ -250,7 +251,7 @@ it.live("verifies an RS256 id token, as third-party providers sign them", () =>
         });
 
         const nowSeconds = Math.floor(Date.now() / 1000);
-        const encodePart = (part: Record<string, unknown>) => Encoding.encodeBase64Url(JSON.stringify(part));
+        const encodePart = (part: Record<string, unknown>) => Base64Url.encode(JSON.stringify(part));
         const signingInput = `${encodePart({ alg: "RS256", typ: "JWT", kid: "rsa-1" })}.${encodePart({
             iss: issuer,
             sub: "user-123",
@@ -261,7 +262,7 @@ it.live("verifies an RS256 id token, as third-party providers sign them", () =>
         const signature = yield* Effect.promise(() =>
             crypto.subtle.sign({ name: "RSASSA-PKCS1-v1_5" }, pair.privateKey, new TextEncoder().encode(signingInput))
         );
-        const idToken = `${signingInput}.${Encoding.encodeBase64Url(new Uint8Array(signature))}`;
+        const idToken = `${signingInput}.${Base64Url.encode(new Uint8Array(signature))}`;
 
         const claims = yield* Oidc.verifyIdToken({ idToken, jwks, issuer, clientId: "client-abc" });
         expect(claims.iss).toBe(issuer);

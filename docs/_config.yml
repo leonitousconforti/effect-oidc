@@ -1,8 +1,5 @@
 remote_theme: mikearnaldi/just-the-docs
 
-baseurl: "/effect-oidc"
-repository: "leonitousconforti/effect-oidc"
-
 # Enable or disable the site search
 search_enabled: true
 

@@ -172,7 +172,7 @@ export * as Oidc from "./Oidc.ts"
  *
  * ```ts
  * import { Effect, Layer, Option } from "effect"
- * import { HttpRouter, HttpServerResponse } from "effect/unstable/http"
+ * import { HttpRouter, HttpServerResponse } from "effect/http"
  * import { RelyingParty } from "effect-oidc"
  *
  * const GoogleSignIn = Effect.gen(function* () {
@@ -239,7 +239,7 @@ export * as RelyingParty from "./RelyingParty.ts"
  *
  * ```ts
  * import { Schema } from "effect"
- * import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+ * import { HttpApiEndpoint, HttpApiGroup } from "effect/http-api"
  * import { ResourceServer } from "effect-oidc"
  *
  * const MyEndpoint = HttpApiEndpoint.get("MyEndpoint", "/me", { success: Schema.String })

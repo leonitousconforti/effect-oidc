@@ -19,8 +19,9 @@
  * @category Oidc
  */
 
-import { DateTime, Duration, Effect, Encoding, Option, Ref, Result, Schema } from "effect";
-import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http";
+import { DateTime, Duration, Effect, Option, Ref, Result, Schema } from "effect";
+import { Base64, Base64Url } from "effect/encoding";
+import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http";
 
 import type * as Jwa from "./Jwa.ts";
 
@@ -231,7 +232,7 @@ export const clientAuthentication = (options: {
 
     if (typeof header === "string" && header.slice(0, 6).toLowerCase() === "basic ") {
         if (options.request.client_secret !== undefined) return Option.none();
-        const decoded = Result.getOrUndefined(Encoding.decodeBase64String(header.slice(6).trim()));
+        const decoded = Result.getOrUndefined(Base64.decodeString(header.slice(6).trim()));
         const separator = decoded === undefined ? -1 : decoded.indexOf(":");
         if (decoded === undefined || separator === -1) return Option.none();
         // RFC 6749 Section 2.3.1: both values are form-urlencoded before
@@ -335,11 +336,11 @@ export const issueIdToken = Effect.fnUntraced(function* (options: {
  * @category Client
  */
 export const generatePkce = Effect.fnUntraced(function* () {
-    const verifier = Encoding.encodeBase64Url(crypto.getRandomValues(new Uint8Array(48)));
+    const verifier = Base64Url.encode(crypto.getRandomValues(new Uint8Array(48)));
     const digest = yield* Effect.promise(() => crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
     return {
         verifier,
-        challenge: Encoding.encodeBase64Url(new Uint8Array(digest)),
+        challenge: Base64Url.encode(new Uint8Array(digest)),
         method: "S256" as const,
     };
 });
@@ -564,9 +565,7 @@ export const exchangeClientCredentials = (options: {
 }) => {
     // RFC 6749 Section 2.3.1: form-urlencode the id and secret before
     // joining them for the Basic header.
-    const basic = Encoding.encodeBase64(
-        `${encodeURIComponent(options.clientId)}:${encodeURIComponent(options.clientSecret)}`
-    );
+    const basic = Base64.encode(`${encodeURIComponent(options.clientId)}:${encodeURIComponent(options.clientSecret)}`);
 
     return HttpClientRequest.post(options.tokenEndpoint).pipe(
         HttpClientRequest.setHeader("authorization", `Basic ${basic}`),
@@ -596,9 +595,7 @@ export const revokeToken = (options: {
     const basic =
         options.clientId === undefined || options.clientSecret === undefined
             ? undefined
-            : Encoding.encodeBase64(
-                  `${encodeURIComponent(options.clientId)}:${encodeURIComponent(options.clientSecret)}`
-              );
+            : Base64.encode(`${encodeURIComponent(options.clientId)}:${encodeURIComponent(options.clientSecret)}`);
 
     const request = HttpClientRequest.post(options.revocationEndpoint).pipe(
         basic === undefined ? (self) => self : HttpClientRequest.setHeader("authorization", `Basic ${basic}`),

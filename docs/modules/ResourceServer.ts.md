@@ -13,7 +13,7 @@ and its audience:
 
 ```ts
 import { Schema } from "effect"
-import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+import { HttpApiEndpoint, HttpApiGroup } from "effect/http-api"
 import { ResourceServer } from "effect-oidc"
 
 const MyEndpoint = HttpApiEndpoint.get("MyEndpoint", "/me", { success: Schema.String })
@@ -163,7 +163,7 @@ no scopes at all (a valid token is still required):
 
 ```ts
 import { Schema } from "effect"
-import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+import { HttpApiEndpoint, HttpApiGroup } from "effect/http-api"
 import { ResourceServer } from "effect-oidc"
 
 const Notes = HttpApiGroup.make("notes")
@@ -185,7 +185,7 @@ it cannot disagree about what it means:
 
 ```ts
 import { Schema } from "effect"
-import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+import { HttpApiEndpoint, HttpApiGroup } from "effect/http-api"
 import { ResourceServer } from "effect-oidc"
 
 const PullSave = { name: "sync:pull", description: "Download a tower's current save data" } as const

@@ -25,8 +25,8 @@
  */
 
 import { Effect, Layer, Schema } from "effect";
-import { HttpClient, HttpClientResponse, HttpRouter } from "effect/unstable/http";
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi";
+import { HttpClient, HttpClientResponse, HttpRouter } from "effect/http";
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/http-api";
 
 import { createServer } from "node:http";
 
