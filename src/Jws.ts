@@ -655,12 +655,12 @@ export function sign<
                 // The header schema's input type is computed at the type level
                 // from `CriticalHeaders`; this object matches it by the same
                 // construction, which the compiler cannot verify - coerce.
+                // oxlint-disable-next-line typescript/no-unsafe-type-assertion
                 const protectedHeader = yield* encodeProtected({
                     alg: algorithm,
                     ...header,
                     ...criticalHeaders,
                     ...(criticalKeys.length === 0 ? {} : { crit: criticalKeys }),
-                    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
                 } as never);
                 const signature = yield* Effect.promise(() =>
                     crypto.subtle.sign(
@@ -792,10 +792,10 @@ export function Signed<
     // The runtime struct matches the computed conditional type by
     // construction (the `criticalHeaders` field exists exactly when critical
     // headers were supplied), which the compiler cannot verify - coerce.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     const from = Schema.Struct({
         payload: options.payload ?? defaultPayloadCodec<A, RD1, RE1>(),
         ...(options.criticalHeaders ? { criticalHeaders: Schema.Struct(options.criticalHeaders) } : {}),
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     }) as Schema.Struct<
         {
             readonly payload: Schema.Codec<A, string, RD1, RE1>;
@@ -818,6 +818,7 @@ export function Signed<
                 // its output is `sign`'s conditional serialization; both are
                 // computed types the compiler cannot relate to this concrete
                 // getter, so it coerces - the body stays fully typed.
+                // oxlint-disable-next-line typescript/no-unsafe-type-assertion
                 decode: SchemaGetter.transformEffect(
                     (input: {
                         readonly payload: A;
@@ -826,7 +827,6 @@ export function Signed<
                         Effect.mapError(signer(input.payload, input.criticalHeaders), (error) =>
                             Schema.isSchemaError(error) ? error.issue : error
                         )
-                    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
                 ) as never,
             })
         );

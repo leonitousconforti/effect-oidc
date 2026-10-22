@@ -130,7 +130,7 @@ declare const register: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/DynamicClientRegistration.ts#L684)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/DynamicClientRegistration.ts#L686)
 
 Since v1.0.0
 
@@ -162,7 +162,7 @@ declare const registerAt: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/DynamicClientRegistration.ts#L565)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/DynamicClientRegistration.ts#L567)
 
 Since v1.0.0
 
@@ -225,7 +225,7 @@ export interface ClientRegistrationRequest {
 }
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/DynamicClientRegistration.ts#L516)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/DynamicClientRegistration.ts#L518)
 
 Since v1.0.0
 
@@ -261,7 +261,7 @@ export interface Registration {
 }
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/DynamicClientRegistration.ts#L498)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/DynamicClientRegistration.ts#L500)
 
 Since v1.0.0
 

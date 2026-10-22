@@ -23,7 +23,7 @@ peerDependencyRules:
     allowedVersions:
         typescript: "7.0.2"
         # babel-plugin-annotate-pure-calls still declares a `@babel/core: ^7.0.0` peer.
-        "@babel/core": "8.0.6"
+        "@babel/core": "8.0.7"
 
 minimumReleaseAgeExclude:
     - effect

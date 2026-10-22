@@ -483,7 +483,9 @@ export const clientInformationResponse = (options: {
  * @since 1.0.0
  * @category Errors
  */
-export class RegistrationError extends Schema.Error<RegistrationError>("effect-oidc/RegistrationError")({
+export class RegistrationError extends Schema.Error<RegistrationError, { readonly brand: unique symbol }>(
+    "effect-oidc/RegistrationError"
+)({
     _tag: Schema.tag("RegistrationError"),
     reason: Schema.Literals(["NotOffered", "Rejected", "Unreachable"]),
     detail: Schema.String.pipe(Schema.optional),

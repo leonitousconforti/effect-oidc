@@ -83,7 +83,7 @@ export interface JwksCache<E> {
 }
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L424)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L426)
 
 Since v1.0.0
 
@@ -105,7 +105,7 @@ declare const authorizationRequest: (options: {
 }) => HttpClientRequest.HttpClientRequest
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L502)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L504)
 
 Since v1.0.0
 
@@ -325,7 +325,7 @@ declare const cachedJwks: (
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L493)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L495)
 
 Since v1.0.0
 
@@ -358,7 +358,7 @@ declare const exchangeAuthorizationCode: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L530)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L532)
 
 Since v1.0.0
 
@@ -391,7 +391,7 @@ declare const exchangeClientCredentials: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L560)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L562)
 
 Since v1.0.0
 
@@ -431,7 +431,7 @@ declare const fetchDiscovery: (
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L371)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L373)
 
 Since v1.0.0
 
@@ -645,7 +645,7 @@ declare const fetchJwks: (
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L415)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L417)
 
 Since v1.0.0
 
@@ -659,7 +659,7 @@ Generates a PKCE verifier and its S256 challenge.
 declare const generatePkce: () => Effect.Effect<{ verifier: string; challenge: string; method: "S256" }, never, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L338)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L340)
 
 Since v1.0.0
 
@@ -1090,7 +1090,7 @@ declare const jwksCache: (
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L454)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L456)
 
 Since v1.0.0
 
@@ -1111,7 +1111,7 @@ declare const revokeToken: (options: {
 }) => Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError, HttpClient.HttpClient>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L589)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L591)
 
 Since v1.0.0
 
@@ -1157,7 +1157,7 @@ declare const verifyIdToken: (options: {
 >
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L626)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L628)
 
 Since v1.0.0
 
@@ -1206,7 +1206,7 @@ declare const clientAuthentication: (options: {
 }) => Option.Option<{ readonly clientId: string; readonly clientSecret: string | undefined }>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L222)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L224)
 
 Since v1.0.0
 
@@ -1229,7 +1229,7 @@ declare const issueAccessToken: (options: {
 }) => Effect.Effect<string, Schema.SchemaError, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L267)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L269)
 
 Since v1.0.0
 
@@ -1252,7 +1252,7 @@ declare const issueIdToken: (options: {
 }) => Effect.Effect<string, Schema.SchemaError, never>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L302)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L304)
 
 Since v1.0.0
 
@@ -1267,7 +1267,7 @@ endpoint paths.
 declare const makeDiscoveryDocument: (issuer: string) => Schema.Schema.Type<typeof DiscoveryDocumentSchema>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L189)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L191)
 
 Since v1.0.0
 
@@ -1474,6 +1474,6 @@ and silently talk to a different (or nonexistent) issuer.
 declare const issuerUrl: (issuer: string, path: string) => string
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L179)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/Oidc.ts#L181)
 
 Since v1.0.0

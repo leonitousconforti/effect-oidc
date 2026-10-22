@@ -130,7 +130,7 @@ declare const make: (options: {
 }) => Effect.Effect<RelyingParty, never, HttpClient.HttpClient>
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L185)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L187)
 
 Since v1.0.0
 
@@ -219,6 +219,6 @@ export interface RelyingParty {
 }
 ```
 
-[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L113)
+[Source](https://github.com/leonitousconforti/effect-oidc/blob/main/src/RelyingParty.ts#L115)
 
 Since v1.0.0
